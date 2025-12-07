@@ -1,0 +1,5 @@
+package com.datehim.datehim_flutter
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()
