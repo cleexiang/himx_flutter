@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:audioplayers/audioplayers.dart';
-import '../models/boyfriend.dart';
-import '../models/character_settings.dart';
+import '../models/himx_role.dart';
 import '../models/chat_message.dart';
 import '../models/date_scene.dart';
 import '../models/song.dart';
+import '../theme/app_theme.dart';
 
 class DatingPage extends StatefulWidget {
-  final Boyfriend boyfriend;
-  final CharacterSettings settings;
+  final HimxRole role;
+  final String nickname;
+  final String personality;
+  final String userNickname;
 
-  const DatingPage({super.key, required this.boyfriend, required this.settings});
+  const DatingPage({
+    super.key,
+    required this.role,
+    required this.nickname,
+    required this.personality,
+    required this.userNickname,
+  });
 
   @override
   State<DatingPage> createState() => _DatingPageState();
@@ -28,7 +36,9 @@ class _DatingPageState extends State<DatingPage> {
   DateScene? _currentScene;
   final List<DateScene> _availableScenes = DateScenes.getPresetScenes();
   final Map<String, DateScene> _initializedScenes = {}; // 已初始化的场景
-  String _currentMediaUrl = ''; // 当前显示的媒体 URL
+  // 当前显示的媒体 URL（预留：后续若需要在 UI 上显示/缓存可再使用）
+  // ignore: unused_field
+  String _currentMediaUrl = '';
 
   // 音乐相关
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -41,9 +51,9 @@ class _DatingPageState extends State<DatingPage> {
   @override
   void initState() {
     super.initState();
-    _currentMediaUrl = widget.boyfriend.videoUrl ?? widget.boyfriend.imageUrl;
-    if (widget.boyfriend.videoUrl != null) {
-      _initializeVideo(widget.boyfriend.videoUrl!);
+    _currentMediaUrl = widget.role.videoUrl ?? widget.role.imageUrl;
+    if (widget.role.videoUrl != null) {
+      _initializeVideo(widget.role.videoUrl!);
     }
     _setupAudioPlayer();
   }
@@ -152,7 +162,7 @@ class _DatingPageState extends State<DatingPage> {
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.9),
+          color: AppTheme.unselectedBackground,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -163,18 +173,14 @@ class _DatingPageState extends State<DatingPage> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.3),
+                color: AppTheme.shadowOverlay.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 20),
             const Text(
               '选择约会场景',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: AppTheme.titleText, fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             Expanded(
@@ -213,18 +219,13 @@ class _DatingPageState extends State<DatingPage> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected
-                ? Colors.pink.shade400
-                : Colors.white.withValues(alpha: 0.2),
+            color: isSelected ? AppTheme.selectedBackground : AppTheme.shadowOverlay.withValues(alpha: 0.3),
             width: isSelected ? 2 : 1,
           ),
           image: DecorationImage(
             image: NetworkImage(scene.imageUrl),
             fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(
-              Colors.black.withValues(alpha: 0.3),
-              BlendMode.darken,
-            ),
+            colorFilter: ColorFilter.mode(Colors.black.withValues(alpha: 0.3), BlendMode.darken),
           ),
         ),
         child: Stack(
@@ -239,19 +240,12 @@ class _DatingPageState extends State<DatingPage> {
                 children: [
                   Text(
                     scene.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(color: AppTheme.pageBackground, fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     scene.description,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.8),
-                      fontSize: 11,
-                    ),
+                    style: TextStyle(color: AppTheme.pageBackground.withValues(alpha: 0.9), fontSize: 11),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -264,15 +258,8 @@ class _DatingPageState extends State<DatingPage> {
                 right: 8,
                 child: Container(
                   padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.pink.shade400,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check,
-                    color: Colors.white,
-                    size: 16,
-                  ),
+                  decoration: BoxDecoration(color: AppTheme.selectedBackground, shape: BoxShape.circle),
+                  child: const Icon(Icons.check, color: AppTheme.buttonText, size: 16),
                 ),
               ),
           ],
@@ -314,7 +301,7 @@ class _DatingPageState extends State<DatingPage> {
     // TODO: 调用后端接口初始化场景
     // 示例接口调用：
     // final response = await ApiService.initializeScene(
-    //   boyfriendId: widget.boyfriend.id,
+    //   roleId: widget.role.id,
     //   sceneId: scene.id,
     // );
     //
@@ -375,18 +362,14 @@ class _DatingPageState extends State<DatingPage> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.3),
+                  color: AppTheme.shadowOverlay.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               const SizedBox(height: 20),
               Text(
-                '${widget.settings.nickname} 的歌单',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                '${widget.nickname} 的歌单',
+                style: const TextStyle(color: AppTheme.titleText, fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               Expanded(
@@ -418,14 +401,10 @@ class _DatingPageState extends State<DatingPage> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: isCurrent
-              ? Colors.pink.withValues(alpha: 0.2)
-              : Colors.white.withValues(alpha: 0.05),
+          color: isCurrent ? AppTheme.selectedBackground.withValues(alpha: 0.3) : AppTheme.pageBackground,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isCurrent
-                ? Colors.pink.shade400
-                : Colors.white.withValues(alpha: 0.1),
+            color: isCurrent ? AppTheme.selectedBackground : AppTheme.shadowOverlay.withValues(alpha: 0.3),
             width: isCurrent ? 2 : 1,
           ),
         ),
@@ -469,35 +448,18 @@ class _DatingPageState extends State<DatingPage> {
           ),
           title: Text(
             song.title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(color: AppTheme.titleText, fontSize: 16, fontWeight: FontWeight.w500),
           ),
-          subtitle: Text(
-            song.artist,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
-              fontSize: 13,
-            ),
-          ),
+          subtitle: Text(song.artist, style: const TextStyle(color: AppTheme.bodyText, fontSize: 13)),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                _formatDuration(song.duration),
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  fontSize: 13,
-                ),
-              ),
+              Text(_formatDuration(song.duration), style: const TextStyle(color: AppTheme.bodyText, fontSize: 13)),
               const SizedBox(width: 8),
               if (isPlaying)
-                const Icon(Icons.equalizer, color: Colors.pink, size: 24)
+                const Icon(Icons.equalizer, color: AppTheme.shadowOverlay, size: 24)
               else if (song.isUnlocked)
-                Icon(Icons.play_circle_outline,
-                    color: Colors.white.withValues(alpha: 0.6), size: 24),
+                const Icon(Icons.play_circle_outline, color: AppTheme.bodyText, size: 24),
             ],
           ),
         ),
@@ -512,10 +474,8 @@ class _DatingPageState extends State<DatingPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border(
-          top: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-        ),
+        color: AppTheme.unselectedBackground,
+        border: Border(top: BorderSide(color: AppTheme.shadowOverlay.withValues(alpha: 0.3))),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -524,12 +484,7 @@ class _DatingPageState extends State<DatingPage> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(6),
-                child: Image.network(
-                  _currentSong!.coverUrl,
-                  width: 40,
-                  height: 40,
-                  fit: BoxFit.cover,
-                ),
+                child: Image.network(_currentSong!.coverUrl, width: 40, height: 40, fit: BoxFit.cover),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -538,21 +493,11 @@ class _DatingPageState extends State<DatingPage> {
                   children: [
                     Text(
                       _currentSong!.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: const TextStyle(color: AppTheme.titleText, fontSize: 14, fontWeight: FontWeight.w500),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    Text(
-                      _currentSong!.artist,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 12,
-                      ),
-                    ),
+                    Text(_currentSong!.artist, style: const TextStyle(color: AppTheme.bodyText, fontSize: 12)),
                   ],
                 ),
               ),
@@ -560,7 +505,7 @@ class _DatingPageState extends State<DatingPage> {
                 onPressed: _togglePlayPause,
                 icon: Icon(
                   _isPlaying ? Icons.pause_circle : Icons.play_circle,
-                  color: Colors.pink,
+                  color: AppTheme.shadowOverlay,
                   size: 36,
                 ),
               ),
@@ -569,31 +514,19 @@ class _DatingPageState extends State<DatingPage> {
           const SizedBox(height: 8),
           Row(
             children: [
-              Text(
-                _formatDuration(_currentPosition),
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  fontSize: 11,
-                ),
-              ),
+              Text(_formatDuration(_currentPosition), style: const TextStyle(color: AppTheme.bodyText, fontSize: 11)),
               Expanded(
                 child: Slider(
                   value: _currentPosition.inSeconds.toDouble(),
                   max: _totalDuration.inSeconds.toDouble(),
-                  activeColor: Colors.pink,
-                  inactiveColor: Colors.white.withValues(alpha: 0.2),
+                  activeColor: AppTheme.shadowOverlay,
+                  inactiveColor: AppTheme.bodyText.withValues(alpha: 0.3),
                   onChanged: (value) {
                     _audioPlayer.seek(Duration(seconds: value.toInt()));
                   },
                 ),
               ),
-              Text(
-                _formatDuration(_totalDuration),
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  fontSize: 11,
-                ),
-              ),
+              Text(_formatDuration(_totalDuration), style: const TextStyle(color: AppTheme.bodyText, fontSize: 11)),
             ],
           ),
         ],
@@ -605,7 +538,7 @@ class _DatingPageState extends State<DatingPage> {
   Future<void> _playSong(Song song) async {
     final systemMessage = ChatMessage(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      content: '${widget.settings.nickname} 为你唱起了《${song.title}》',
+      content: '${widget.nickname} 为你唱起了《${song.title}》',
       isUser: false,
       timestamp: DateTime.now(),
     );
@@ -686,18 +619,12 @@ class _DatingPageState extends State<DatingPage> {
                           const SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white70,
-                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white70),
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '${widget.settings.nickname} 正在输入...',
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                            ),
+                            '${widget.nickname} 正在输入...',
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
                           ),
                         ],
                       ),
@@ -714,12 +641,7 @@ class _DatingPageState extends State<DatingPage> {
           ),
 
           // 输入框悬浮在底部，无背景
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 20,
-            child: _buildMessageInput(),
-          ),
+          Positioned(left: 16, right: 16, bottom: 20, child: _buildMessageInput()),
 
           // 返回按钮
           Positioned(
@@ -765,14 +687,12 @@ class _DatingPageState extends State<DatingPage> {
     if (_videoController != null && !_videoController!.value.isInitialized) {
       return Container(
         color: Colors.black,
-        child: const Center(
-          child: CircularProgressIndicator(color: Colors.white),
-        ),
+        child: const Center(child: CircularProgressIndicator(color: Colors.white)),
       );
     }
 
     // 显示图片（使用当前场景的图片或默认图片）
-    final imageUrl = _currentScene?.imageUrl ?? widget.boyfriend.imageUrl;
+    final imageUrl = _currentScene?.imageUrl ?? widget.role.imageUrl;
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 500),
       child: Image.network(
@@ -784,9 +704,7 @@ class _DatingPageState extends State<DatingPage> {
         errorBuilder: (context, error, stackTrace) {
           return Container(
             color: Colors.black,
-            child: const Center(
-              child: Icon(Icons.person, size: 100, color: Colors.white54),
-            ),
+            child: const Center(child: Icon(Icons.person, size: 100, color: Colors.white54)),
           );
         },
       ),
@@ -818,7 +736,7 @@ class _DatingPageState extends State<DatingPage> {
 
   Widget _buildFunctionButton({required IconData icon, required String label, required Color color}) {
     return Material(
-      color: Colors.white.withValues(alpha: 0.8),
+      color: AppTheme.unselectedBackground,
       shape: const CircleBorder(),
       elevation: 4,
       child: InkWell(
@@ -828,9 +746,7 @@ class _DatingPageState extends State<DatingPage> {
           } else if (label == 'Sing') {
             _showSongList();
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('$label 功能开发中...')),
-            );
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label 功能开发中...')));
           }
         },
         customBorder: const CircleBorder(),
@@ -850,10 +766,7 @@ class _DatingPageState extends State<DatingPage> {
       builder: (context, value, child) {
         return Opacity(
           opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, 10 * (1 - value)),
-            child: child,
-          ),
+          child: Transform.translate(offset: Offset(0, 10 * (1 - value)), child: child),
         );
       },
       child: Padding(
@@ -863,9 +776,7 @@ class _DatingPageState extends State<DatingPage> {
             message.content,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: message.isUser
-                  ? Colors.pink.shade200
-                  : Colors.white,
+              color: message.isUser ? AppTheme.shadowOverlay : AppTheme.pageBackground,
               fontSize: 16,
               height: 1.5,
             ),
@@ -889,36 +800,26 @@ class _DatingPageState extends State<DatingPage> {
                 hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.3),
-                  ),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.3),
-                  ),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    width: 1.5,
-                  ),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.6), width: 1.5),
                 ),
                 filled: true,
                 fillColor: Colors.black.withValues(alpha: 0.3),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               onSubmitted: (_) => _sendMessage(),
             ),
           ),
           const SizedBox(width: 16),
           Material(
-            color: Colors.pink.shade400,
+            color: AppTheme.buttonBackground,
             shape: const CircleBorder(),
             elevation: 4,
             child: InkWell(
@@ -926,7 +827,7 @@ class _DatingPageState extends State<DatingPage> {
               customBorder: const CircleBorder(),
               child: const Padding(
                 padding: EdgeInsets.all(14),
-                child: Icon(Icons.send, color: Colors.white, size: 22),
+                child: Icon(Icons.send, color: AppTheme.buttonText, size: 22),
               ),
             ),
           ),

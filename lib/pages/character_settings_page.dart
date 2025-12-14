@@ -1,17 +1,14 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import '../models/boyfriend.dart';
-import '../models/character_settings.dart';
+import '../models/himx_role.dart';
 import 'dating_page.dart';
+import '../theme/app_theme.dart';
+import '../services/himx_api.dart';
 
 class CharacterSettingsPage extends StatefulWidget {
-  final Boyfriend boyfriend;
+  final HimxRole role;
 
-  const CharacterSettingsPage({
-    super.key,
-    required this.boyfriend,
-  });
+  const CharacterSettingsPage({super.key, required this.role});
 
   @override
   State<CharacterSettingsPage> createState() => _CharacterSettingsPageState();
@@ -21,6 +18,7 @@ class _CharacterSettingsPageState extends State<CharacterSettingsPage> {
   final _nicknameController = TextEditingController();
   final _personalityController = TextEditingController();
   final _userNicknameController = TextEditingController();
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -30,7 +28,7 @@ class _CharacterSettingsPageState extends State<CharacterSettingsPage> {
     super.dispose();
   }
 
-  void _startDating() {
+  Future<void> _startDating() async {
     // Validate inputs
     if (_nicknameController.text.isEmpty ||
         _personalityController.text.isEmpty ||
@@ -40,64 +38,60 @@ class _CharacterSettingsPageState extends State<CharacterSettingsPage> {
         builder: (context) => CupertinoAlertDialog(
           title: const Text('Missing Information'),
           content: const Text('Please fill in all fields'),
-          actions: [
-            CupertinoDialogAction(
-              child: const Text('OK'),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ],
+          actions: [CupertinoDialogAction(child: const Text('OK'), onPressed: () => Navigator.pop(context))],
         ),
       );
       return;
     }
 
-    final settings = CharacterSettings(
-      boyfriendId: widget.boyfriend.id,
-      nickname: _nicknameController.text,
-      personality: _personalityController.text,
-      userNickname: _userNicknameController.text,
-    );
+    final nickname = _nicknameController.text;
+    final personality = _personalityController.text;
+    final userNickname = _userNicknameController.text;
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DatingPage(
-          boyfriend: widget.boyfriend,
-          settings: settings,
+    setState(() => _isSubmitting = true);
+    try {
+      await HimxApi().startDating(
+        roleId: widget.role.roleId,
+        nickname: nickname,
+        personality: personality,
+        userNickname: userNickname,
+      );
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DatingPage(
+            role: widget.role,
+            nickname: nickname,
+            personality: personality,
+            userNickname: userNickname,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Start Dating Failed'),
+          content: Text('$e'),
+          actions: [CupertinoDialogAction(child: const Text('OK'), onPressed: () => Navigator.pop(context))],
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    const bronzeColor = Color(0xFFCD7F32);
-
     return Scaffold(
+      backgroundColor: AppTheme.pageBackground,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Background image with blur effect
-          Image.network(
-            widget.boyfriend.imageUrl,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                color: Colors.grey.shade300,
-                child: const Icon(
-                  Icons.person,
-                  size: 100,
-                  color: Colors.grey,
-                ),
-              );
-            },
-          ),
-          BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: Container(
-              color: Colors.black.withValues(alpha: 0.3),
-            ),
-          ),
+          // Background color
+          Container(color: AppTheme.pageBackground),
           // Settings card
           Center(
             child: SingleChildScrollView(
@@ -105,32 +99,14 @@ class _CharacterSettingsPageState extends State<CharacterSettingsPage> {
                 padding: const EdgeInsets.all(24.0),
                 child: Container(
                   constraints: const BoxConstraints(maxWidth: 400),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
+                  decoration: AppTheme.unselectedBoxDecoration(borderRadius: 24),
                   child: Padding(
                     padding: const EdgeInsets.all(32.0),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Text(
-                          'Character Settings',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: bronzeColor,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
+                        const Text('Character Settings', style: AppTheme.titleTextStyle, textAlign: TextAlign.center),
                         const SizedBox(height: 32),
                         _buildTextField(
                           controller: _nicknameController,
@@ -155,23 +131,15 @@ class _CharacterSettingsPageState extends State<CharacterSettingsPage> {
                         ),
                         const SizedBox(height: 32),
                         ElevatedButton(
-                          onPressed: _startDating,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: bronzeColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                            elevation: 5,
-                          ),
-                          child: const Text(
-                            'Start Dating',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          onPressed: _isSubmitting ? null : _startDating,
+                          style: AppTheme.primaryButtonStyle(padding: const EdgeInsets.symmetric(vertical: 16)),
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  height: 18,
+                                  width: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.buttonText),
+                                )
+                              : const Text('Start Dating', style: AppTheme.buttonTextStyle),
                         ),
                       ],
                     ),
@@ -186,11 +154,7 @@ class _CharacterSettingsPageState extends State<CharacterSettingsPage> {
             left: 20,
             child: InkWell(
               onTap: () => Navigator.pop(context),
-              child: const Icon(
-                Icons.arrow_back,
-                color: bronzeColor,
-                size: 32,
-              ),
+              child: const Icon(Icons.arrow_back, color: AppTheme.shadowOverlay, size: 32),
             ),
           ),
         ],
@@ -205,8 +169,6 @@ class _CharacterSettingsPageState extends State<CharacterSettingsPage> {
     required IconData icon,
     int maxLines = 1,
   }) {
-    const bronzeColor = Color(0xFFCD7F32);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -214,11 +176,7 @@ class _CharacterSettingsPageState extends State<CharacterSettingsPage> {
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
             label,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.titleText),
           ),
         ),
         CupertinoTextField(
@@ -227,19 +185,12 @@ class _CharacterSettingsPageState extends State<CharacterSettingsPage> {
           placeholder: hint,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.3),
+            color: AppTheme.pageBackground,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: Colors.grey.withValues(alpha: 0.3),
-              width: 0.5,
-            ),
+            border: Border.all(color: AppTheme.shadowOverlay.withValues(alpha: 0.3), width: 1),
           ),
-          placeholderStyle: TextStyle(
-            color: Colors.grey.withValues(alpha: 0.6),
-          ),
-          style: const TextStyle(
-            color: Colors.black87,
-          ),
+          placeholderStyle: TextStyle(color: AppTheme.bodyText.withValues(alpha: 0.5)),
+          style: const TextStyle(color: AppTheme.bodyText),
         ),
       ],
     );

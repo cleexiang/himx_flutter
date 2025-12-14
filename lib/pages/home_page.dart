@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import '../models/boyfriend.dart';
+import '../models/himx_role.dart';
+import '../models/himx_user_role.dart';
 import 'character_settings_page.dart';
 import 'dating_page.dart';
-import '../models/character_settings.dart';
+import '../theme/app_theme.dart';
+import '../services/himx_api.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,58 +18,51 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   late TabController _tabController;
   int _currentCarouselIndex = 0;
 
-  // 所有可选角色
-  final List<Boyfriend> allBoyfriends = [
-    Boyfriend(
-      id: '1',
-      name: '温柔绅士',
-      imageUrl:
-          'https://uonxglfnzhafyypynuug.supabase.co/storage/v1/object/public/datehim/cbwbs34p0hrme0ctqxatvfnsx0.jpg',
-      description: '温柔体贴的绅士型男友',
-    ),
-    Boyfriend(
-      id: '2',
-      name: '霸道总裁',
-      imageUrl:
-          'https://uonxglfnzhafyypynuug.supabase.co/storage/v1/object/public/datehim/qw01rrvd5rm80ctr3gak2pbf0.jpg',
-      description: '强势霸道的总裁型男友',
-    ),
-    Boyfriend(
-      id: '3',
-      name: '阳光男孩',
-      imageUrl:
-          'https://uonxglfnzhafyypynuug.supabase.co/storage/v1/object/public/datehim/8bch7xhqhnrme0ctr3h9egzmvr.jpg',
-      description: '活力四射的阳光大男孩',
-    ),
-    Boyfriend(
-      id: '4',
-      name: '阳光男孩',
-      imageUrl:
-          'https://uonxglfnzhafyypynuug.supabase.co/storage/v1/object/public/datehim/89emyqj2hnrmc0ctr3ftkpkat0.jpg',
-      description: '活力四射的阳光大男孩',
-    ),
-  ];
+  final HimxApi _himxApi = HimxApi();
 
-  // 正在约会的角色列表（模拟数据，实际应该从本地存储或服务器获取）
-  final List<Map<String, dynamic>> activeDatings = [
-    // 示例：已经开始约会的角色
-    // {
-    //   'boyfriend': Boyfriend(...),
-    //   'settings': CharacterSettings(...),
-    //   'lastMessage': '你好呀~',
-    //   'unreadCount': 2,
-    // }
-  ];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  List<HimxUserRole> _myRoles = [];
+  List<HimxRole> _recommendedRoles = [];
 
   @override
   void initState() {
     super.initState();
-    // 如果有正在约会的角色，默认显示"我的约会"，否则显示"发现更多"
-    _tabController = TabController(
-      length: 2,
-      vsync: this,
-      initialIndex: activeDatings.isEmpty ? 1 : 0,
-    );
+    _tabController = TabController(length: 2, vsync: this, initialIndex: 1);
+    _loadHomeData();
+  }
+
+  Future<void> _loadHomeData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final results = await Future.wait([_himxApi.getMyRoles(), _himxApi.getRecommendedRoles()]);
+
+      final myRoles = results[0] as List<HimxUserRole>;
+      final recommended = results[1] as List<HimxRole>;
+
+      if (!mounted) return;
+      setState(() {
+        _myRoles = myRoles;
+        _recommendedRoles = recommended;
+        _isLoading = false;
+      });
+
+      // If user already has roles, default to "我的约会"
+      if (_myRoles.isNotEmpty) {
+        _tabController.animateTo(0);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = '$e';
+      });
+    }
   }
 
   @override
@@ -79,84 +74,63 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.pageBackground,
       body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/bg_home2.jpg'),
-            fit: BoxFit.cover,
-          ),
-        ),
+        decoration: const BoxDecoration(color: AppTheme.pageBackground),
         child: SafeArea(
           child: Column(
             children: [
               // 顶部标题
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 20),
-                child: Text(
-                  'Date Him',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black45,
-                        offset: Offset(0, 2),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                ),
+                child: Text('Date Him', style: AppTheme.titleTextStyle),
               ),
 
               // Tab 栏
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 40),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.3),
+                  color: AppTheme.unselectedBackground,
                   borderRadius: BorderRadius.circular(25),
                 ),
                 child: TabBar(
                   controller: _tabController,
                   indicator: BoxDecoration(
                     borderRadius: BorderRadius.circular(25),
-                    gradient: const LinearGradient(
-                      colors: [
-                        Color(0xFFD4AF37),
-                        Color(0xFFCD7F32),
-                      ],
-                    ),
+                    color: AppTheme.selectedBackground,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.shadowOverlay.withValues(alpha: 0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
                   dividerColor: Colors.transparent,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.white.withValues(alpha: 0.6),
-                  labelStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  labelColor: AppTheme.titleText,
+                  unselectedLabelColor: AppTheme.bodyText.withValues(alpha: 0.6),
+                  labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   tabs: [
                     Tab(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Text('我的约会'),
-                          if (activeDatings.isNotEmpty)
+                          if (_myRoles.isNotEmpty)
                             Container(
                               margin: const EdgeInsets.only(left: 6),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: Colors.pink,
+                                color: AppTheme.shadowOverlay,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
-                                '${activeDatings.length}',
+                                '${_myRoles.length}',
                                 style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
+                                  color: AppTheme.buttonText,
                                 ),
                               ),
                             ),
@@ -172,13 +146,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
               // Tab 内容
               Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildMyDatingsTab(),
-                    _buildDiscoverTab(),
-                  ],
-                ),
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : (_errorMessage != null)
+                    ? _buildErrorState()
+                    : TabBarView(controller: _tabController, children: [_buildMyDatingsTab(), _buildDiscoverTab()]),
               ),
             ],
           ),
@@ -187,18 +159,51 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.wifi_off, color: AppTheme.shadowOverlay, size: 64),
+            const SizedBox(height: 16),
+            const Text(
+              '加载失败',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.titleText),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage ?? '',
+              style: TextStyle(color: AppTheme.bodyText.withValues(alpha: 0.7)),
+              textAlign: TextAlign.center,
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadHomeData,
+              style: AppTheme.primaryButtonStyle(),
+              child: const Text('重试', style: AppTheme.buttonTextStyle),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // 我的约会 Tab
   Widget _buildMyDatingsTab() {
-    if (activeDatings.isEmpty) {
+    if (_myRoles.isEmpty) {
       return _buildEmptyState();
     }
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemCount: activeDatings.length,
+      itemCount: _myRoles.length,
       itemBuilder: (context, index) {
-        final dating = activeDatings[index];
-        return _buildDatingCard(dating);
+        final item = _myRoles[index];
+        return _buildDatingCard(item);
       },
     );
   }
@@ -211,33 +216,16 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         children: [
           Container(
             padding: const EdgeInsets.all(30),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.favorite_border,
-              size: 80,
-              color: Colors.white.withValues(alpha: 0.6),
-            ),
+            decoration: BoxDecoration(color: AppTheme.unselectedBackground, shape: BoxShape.circle),
+            child: Icon(Icons.favorite_border, size: 80, color: AppTheme.shadowOverlay),
           ),
           const SizedBox(height: 30),
-          Text(
+          const Text(
             '还没有开始约会哦',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white.withValues(alpha: 0.9),
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.titleText),
           ),
           const SizedBox(height: 12),
-          Text(
-            '去发现心仪的他吧',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.white.withValues(alpha: 0.7),
-            ),
-          ),
+          const Text('去发现心仪的他吧', style: TextStyle(fontSize: 16, color: AppTheme.bodyText)),
           const SizedBox(height: 30),
           ElevatedButton.icon(
             onPressed: () {
@@ -245,14 +233,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             },
             icon: const Icon(Icons.explore),
             label: const Text('去发现'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFCD7F32),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(25),
-              ),
-            ),
+            style: AppTheme.primaryButtonStyle(),
           ),
         ],
       ),
@@ -260,36 +241,19 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   // 正在约会的卡片
-  Widget _buildDatingCard(Map<String, dynamic> dating) {
-    final boyfriend = dating['boyfriend'] as Boyfriend;
-    final settings = dating['settings'] as CharacterSettings;
-    final lastMessage = dating['lastMessage'] as String;
-    final unreadCount = dating['unreadCount'] as int;
+  Widget _buildDatingCard(HimxUserRole dating) {
+    final lastMessage = '继续你们的约会吧～';
+    final unreadCount = 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
+      decoration: AppTheme.unselectedBoxDecoration(borderRadius: 16),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => DatingPage(
-                  boyfriend: boyfriend,
-                  settings: settings,
-                ),
-              ),
-            );
+            _openDating(dating);
           },
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -299,7 +263,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: Image.network(
-                    boyfriend.imageUrl,
+                    dating.imageUrl,
                     width: 70,
                     height: 70,
                     fit: BoxFit.cover,
@@ -319,14 +283,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 角色名称
+                      // 角色名称（如果用户设置了nickname则显示nickname）
                       Text(
-                        settings.nickname.isEmpty ? boyfriend.name : settings.nickname,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        dating.nickname.isNotEmpty ? dating.nickname : dating.name,
+                        style: const TextStyle(color: AppTheme.titleText, fontSize: 16, fontWeight: FontWeight.bold),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -334,10 +294,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       // 最后一条消息
                       Text(
                         lastMessage,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.7),
-                          fontSize: 14,
-                        ),
+                        style: const TextStyle(color: AppTheme.bodyText, fontSize: 14),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -347,21 +304,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 // 未读消息徽章
                 if (unreadCount > 0)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.pink,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: AppTheme.shadowOverlay, borderRadius: BorderRadius.circular(12)),
                     child: Text(
                       unreadCount > 99 ? '99+' : '$unreadCount',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(color: AppTheme.buttonText, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ),
               ],
@@ -372,13 +319,58 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
+  void _openDating(HimxUserRole userRole) {
+    final role = HimxRole(
+      id: userRole.id,
+      roleId: userRole.roleId,
+      name: userRole.name,
+      imageUrl: userRole.imageUrl,
+      videoUrl: userRole.videoUrl,
+      description: userRole.description,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DatingPage(
+          role: role,
+          nickname: userRole.nickname,
+          personality: userRole.personality,
+          userNickname: userRole.userNickname,
+        ),
+      ),
+    );
+  }
+
   // 发现更多 Tab
   Widget _buildDiscoverTab() {
+    if (_recommendedRoles.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.search_off, color: AppTheme.shadowOverlay, size: 64),
+            const SizedBox(height: 12),
+            const Text(
+              '暂时没有推荐角色',
+              style: TextStyle(color: AppTheme.titleText, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadHomeData,
+              style: AppTheme.primaryButtonStyle(),
+              child: const Text('刷新', style: AppTheme.buttonTextStyle),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Center(
       child: CarouselSlider.builder(
-        itemCount: allBoyfriends.length,
+        itemCount: _recommendedRoles.length,
         itemBuilder: (context, index, realIndex) {
-          final boyfriend = allBoyfriends[index];
+          final boyfriend = _recommendedRoles[index];
           final isSelected = index == _currentCarouselIndex;
           return _buildBoyfriendCard(boyfriend, isSelected);
         },
@@ -398,7 +390,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _buildBoyfriendCard(Boyfriend boyfriend, bool isSelected) {
+  Widget _buildBoyfriendCard(HimxRole boyfriend, bool isSelected) {
     return SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -407,31 +399,17 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             width: 300,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Colors.black,
-                width: 8, // 更粗的边框
-              ),
+              border: Border.all(color: AppTheme.titleText, width: 8),
               boxShadow: isSelected
                   ? [
-                      // 外阴影
+                      BoxShadow(color: AppTheme.shadowOverlay.withValues(alpha: 0.6), blurRadius: 20, spreadRadius: 4),
                       BoxShadow(
-                        color: const Color(0xFFCD7F32).withValues(alpha: 0.6),
-                        blurRadius: 20,
-                        spreadRadius: 4,
-                      ),
-                      BoxShadow(
-                        color: const Color(0xFFD4AF37).withValues(alpha: 0.5),
+                        color: AppTheme.selectedBackground.withValues(alpha: 0.5),
                         blurRadius: 30,
                         spreadRadius: 6,
                       ),
                     ]
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.4),
-                        blurRadius: 12,
-                        spreadRadius: 2,
-                      ),
-                    ],
+                  : [BoxShadow(color: AppTheme.bodyText.withValues(alpha: 0.3), blurRadius: 12, spreadRadius: 2)],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(14),
@@ -451,110 +429,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             ),
           ),
           const SizedBox(height: 20),
-          Container(
-            decoration: BoxDecoration(
-              // 从两边往中间的径向渐变
-              gradient: const RadialGradient(
-                center: Alignment.center,
-                radius: 1.2,
-                colors: [
-                  Color(0xFFF4E4C1), // 中心浅金色
-                  Color(0xFFD4AF37), // 金色
-                  Color(0xFFCD7F32), // 古铜色
-                  Color(0xFFB87333), // 深古铜色
-                ],
-                stops: [0.0, 0.3, 0.7, 1.0],
-              ),
-              borderRadius: BorderRadius.circular(25),
-              boxShadow: [
-                // 外阴影 - 增强立体感
-                BoxShadow(
-                  color: const Color(0xFFCD7F32).withValues(alpha: 0.6),
-                  blurRadius: 12,
-                  spreadRadius: 1,
-                  offset: const Offset(0, 4),
-                ),
-                // 外发光效果
-                BoxShadow(
-                  color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(25),
-                // 内阴影效果通过叠加层实现
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    spreadRadius: -2,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  // 高光层
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      height: 20,
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(25),
-                          topRight: Radius.circular(25),
-                        ),
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.white.withValues(alpha: 0.4),
-                            Colors.white.withValues(alpha: 0.0),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  // 按钮本体
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => CharacterSettingsPage(boyfriend: boyfriend)),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      foregroundColor: Colors.white,
-                      shadowColor: Colors.transparent,
-                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Date with him',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        shadows: [
-                          // 文字阴影增强可读性
-                          Shadow(
-                            color: Colors.black45,
-                            offset: Offset(0, 1),
-                            blurRadius: 2,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => CharacterSettingsPage(role: boyfriend)));
+            },
+            style: AppTheme.primaryButtonStyle(),
+            child: const Text('Date with him', style: AppTheme.buttonTextStyle),
           ),
         ],
       ),

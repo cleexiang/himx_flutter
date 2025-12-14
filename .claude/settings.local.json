@@ -5,7 +5,10 @@
       "Bash(flutter pub:*)",
       "Bash(flutter analyze:*)",
       "Bash(tree:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "mcp__replicate__search",
+      "mcp__replicate__create_models_predictions",
+      "mcp__replicate__get_predictions"
     ],
     "deny": [],
     "ask": []

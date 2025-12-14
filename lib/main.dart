@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'pages/home_page.dart';
+import 'pages/splash_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,9 +19,9 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
         useMaterial3: true,
-        fontFamily: '.SF Pro Text', // iOS 系统字体，Android 会自动使用 Roboto
+        fontFamily: 'IBMPlexSans',
       ),
-      home: const HomePage(),
+      home: const SplashScreen(),
     );
   }
 }
