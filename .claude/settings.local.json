@@ -11,6 +11,9 @@
       "mcp__replicate__get_predictions"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "additionalDirectories": [
+      "/Users/cleexiang/work/coolapp_project/microagent_api"
+    ]
   }
 }

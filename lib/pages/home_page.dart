@@ -52,7 +52,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         _isLoading = false;
       });
 
-      // If user already has roles, default to "我的约会"
+      // If user already has roles, default to "My Dates"
       if (_myRoles.isNotEmpty) {
         _tabController.animateTo(0);
       }
@@ -80,13 +80,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         child: SafeArea(
           child: Column(
             children: [
-              // 顶部标题
+              // Top title
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 20),
                 child: Text('Date Him', style: AppTheme.titleTextStyle),
               ),
 
-              // Tab 栏
+              // Tab bar
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 40),
                 decoration: BoxDecoration(
@@ -116,7 +116,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text('我的约会'),
+                          const Text('My Dates'),
                           if (_myRoles.isNotEmpty)
                             Container(
                               margin: const EdgeInsets.only(left: 6),
@@ -137,14 +137,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         ],
                       ),
                     ),
-                    const Tab(text: '发现更多'),
+                    const Tab(text: 'Discover'),
                   ],
                 ),
               ),
 
               const SizedBox(height: 20),
 
-              // Tab 内容
+              // Tab content
               Expanded(
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
@@ -169,7 +169,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             const Icon(Icons.wifi_off, color: AppTheme.shadowOverlay, size: 64),
             const SizedBox(height: 16),
             const Text(
-              '加载失败',
+              'Failed to Load',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.titleText),
             ),
             const SizedBox(height: 8),
@@ -184,7 +184,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             ElevatedButton(
               onPressed: _loadHomeData,
               style: AppTheme.primaryButtonStyle(),
-              child: const Text('重试', style: AppTheme.buttonTextStyle),
+              child: const Text('Retry', style: AppTheme.buttonTextStyle),
             ),
           ],
         ),
@@ -192,7 +192,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  // 我的约会 Tab
+  // My Dates Tab
   Widget _buildMyDatingsTab() {
     if (_myRoles.isEmpty) {
       return _buildEmptyState();
@@ -208,7 +208,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  // 空状态页面
+  // Empty state
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -221,18 +221,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           ),
           const SizedBox(height: 30),
           const Text(
-            '还没有开始约会哦',
+            'No Dates Yet',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.titleText),
           ),
           const SizedBox(height: 12),
-          const Text('去发现心仪的他吧', style: TextStyle(fontSize: 16, color: AppTheme.bodyText)),
+          const Text('Discover someone special', style: TextStyle(fontSize: 16, color: AppTheme.bodyText)),
           const SizedBox(height: 30),
           ElevatedButton.icon(
             onPressed: () {
-              _tabController.animateTo(1); // 切换到"发现更多" Tab
+              _tabController.animateTo(1); // Switch to "Discover" Tab
             },
             icon: const Icon(Icons.explore),
-            label: const Text('去发现'),
+            label: const Text('Discover'),
             style: AppTheme.primaryButtonStyle(),
           ),
         ],
@@ -240,9 +240,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  // 正在约会的卡片
+  // Dating card
   Widget _buildDatingCard(HimxUserRole dating) {
-    final lastMessage = '继续你们的约会吧～';
+    final lastMessage = 'Continue your date~';
     final unreadCount = 0;
 
     return Container(
@@ -256,42 +256,44 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             _openDating(dating);
           },
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // 角色头像
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    dating.imageUrl,
-                    width: 70,
-                    height: 70,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 70,
-                        height: 70,
-                        color: Colors.grey.shade800,
-                        child: const Icon(Icons.person, color: Colors.grey),
-                      );
-                    },
+                // Avatar with 3:4 aspect ratio
+                SizedBox(
+                  width: 90,
+                  child: AspectRatio(
+                    aspectRatio: 3 / 4,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        dating.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey.shade800,
+                            child: const Icon(Icons.person, color: Colors.grey),
+                          );
+                        },
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                // 消息内容
+                const SizedBox(width: 16),
+                // Message content
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 角色名称（如果用户设置了nickname则显示nickname）
+                      // Role name (show nickname if set)
                       Text(
                         dating.nickname.isNotEmpty ? dating.nickname : dating.name,
                         style: const TextStyle(color: AppTheme.titleText, fontSize: 16, fontWeight: FontWeight.bold),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 6),
-                      // 最后一条消息
+                      const SizedBox(height: 8),
+                      // Last message
                       Text(
                         lastMessage,
                         style: const TextStyle(color: AppTheme.bodyText, fontSize: 14),
@@ -301,7 +303,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     ],
                   ),
                 ),
-                // 未读消息徽章
+                // Unread badge
                 if (unreadCount > 0)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -342,7 +344,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  // 发现更多 Tab
+  // Discover Tab
   Widget _buildDiscoverTab() {
     if (_recommendedRoles.isEmpty) {
       return Center(
@@ -352,14 +354,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             const Icon(Icons.search_off, color: AppTheme.shadowOverlay, size: 64),
             const SizedBox(height: 12),
             const Text(
-              '暂时没有推荐角色',
+              'No Recommendations',
               style: TextStyle(color: AppTheme.titleText, fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadHomeData,
               style: AppTheme.primaryButtonStyle(),
-              child: const Text('刷新', style: AppTheme.buttonTextStyle),
+              child: const Text('Refresh', style: AppTheme.buttonTextStyle),
             ),
           ],
         ),
@@ -391,52 +393,55 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   Widget _buildBoyfriendCard(HimxRole boyfriend, bool isSelected) {
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 300,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppTheme.titleText, width: 8),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(color: AppTheme.shadowOverlay.withValues(alpha: 0.6), blurRadius: 20, spreadRadius: 4),
-                      BoxShadow(
-                        color: AppTheme.selectedBackground.withValues(alpha: 0.5),
-                        blurRadius: 30,
-                        spreadRadius: 6,
-                      ),
-                    ]
-                  : [BoxShadow(color: AppTheme.bodyText.withValues(alpha: 0.3), blurRadius: 12, spreadRadius: 2)],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Image.network(
-                boyfriend.imageUrl,
-                height: 360,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 360,
-                    color: Colors.grey.shade800,
-                    child: const Icon(Icons.person, size: 100, color: Colors.grey),
-                  );
-                },
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 300,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppTheme.titleText, width: 8),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(color: AppTheme.shadowOverlay.withValues(alpha: 0.4), blurRadius: 12, spreadRadius: 0),
+                        BoxShadow(
+                          color: AppTheme.selectedBackground.withValues(alpha: 0.3),
+                          blurRadius: 16,
+                          spreadRadius: 0,
+                        ),
+                      ]
+                    : [BoxShadow(color: AppTheme.bodyText.withValues(alpha: 0.2), blurRadius: 8, spreadRadius: 0)],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.network(
+                  boyfriend.imageUrl,
+                  height: 360,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 360,
+                      color: Colors.grey.shade800,
+                      child: const Icon(Icons.person, size: 100, color: Colors.grey),
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => CharacterSettingsPage(role: boyfriend)));
-            },
-            style: AppTheme.primaryButtonStyle(),
-            child: const Text('Date with him', style: AppTheme.buttonTextStyle),
-          ),
-        ],
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => CharacterSettingsPage(role: boyfriend)));
+              },
+              style: AppTheme.primaryButtonStyle(),
+              child: const Text('Date with him', style: AppTheme.buttonTextStyle),
+            ),
+          ],
+        ),
       ),
     );
   }

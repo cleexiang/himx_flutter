@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:himx/models/user_model.dart';
+import 'package:himx/services/auth_service.dart';
 import 'package:himx/utils/constants.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -77,30 +78,12 @@ class ApiClient {
     return ApiException(-1, error.toString());
   }
 
-  Future<void> _loadToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString(AppConstants.userTokenKey);
-    if (_token != null) {
-      _dio.options.headers['Authorization'] = 'Bearer $_token';
-    }
-  }
-
-  Future<void> setToken(String token) async {
-    _token = token;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(AppConstants.userTokenKey, token);
-    _dio.options.headers['Authorization'] = 'Bearer $_token';
-
-    // 同时更新 HttpClient 的 token
-    HttpClient().setToken(token);
-  }
-
   Future<UserInfo> loginWithDevice() async {
     try {
       final response = await post(path: AppConstants.loginEndpoint, fromJson: (json) => UserInfo.fromJson(json));
 
       if (response.token != null) {
-        await setToken(response.token!);
+        await AuthService().saveUser(response, response.token!);
       }
       return response;
     } catch (e) {
@@ -118,7 +101,7 @@ class ApiClient {
       );
 
       if (response.token != null) {
-        await setToken(response.token!);
+        await AuthService().saveUser(response, response.token!);
       }
       return response;
     } catch (e) {

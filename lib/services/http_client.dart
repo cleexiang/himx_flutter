@@ -1,15 +1,15 @@
 import 'package:dio/dio.dart';
 import 'package:himx/common/globaldata.dart';
+import 'package:himx/services/auth_service.dart';
 import 'package:uuid/uuid.dart';
 
 class BaseRequestInterceptor extends Interceptor {
   final _uuid = const Uuid();
-  String? _token;
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    if (GlobalData().token != null) {
-      options.headers.addAll({"Authorization": "Bearer ${GlobalData().token}"});
+    if (AuthService().token != null) {
+      options.headers.addAll({"Authorization": "Bearer ${AuthService().token}"});
     }
 
     // Add common headers
@@ -25,10 +25,6 @@ class BaseRequestInterceptor extends Interceptor {
     });
 
     super.onRequest(options, handler);
-  }
-
-  void setToken(String? token) {
-    _token = token;
   }
 }
 
@@ -56,9 +52,4 @@ class HttpClient {
 
   // 获取dio实例
   Dio get dio => _dio;
-
-  // 设置 token
-  void setToken(String? token) {
-    _requestInterceptor.setToken(token);
-  }
 }

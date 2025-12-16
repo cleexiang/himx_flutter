@@ -1,5 +1,5 @@
 import 'api_client.dart';
-import 'dart:async';
+import 'package:himx/models/chat_message.dart';
 import 'package:himx/models/himx_role.dart';
 import 'package:himx/models/himx_user_role.dart';
 
@@ -12,7 +12,9 @@ class HimxApi {
       path: '/rest/v1/himx/roles/recommended',
       fromJson: (json) {
         final List<dynamic> data = json as List<dynamic>;
-        return data.map((item) => HimxRole.fromJson(item as Map<String, dynamic>)).toList();
+        return data
+            .map((item) => HimxRole.fromJson(item as Map<String, dynamic>))
+            .toList();
       },
     );
   }
@@ -23,7 +25,9 @@ class HimxApi {
       path: '/rest/v1/himx/roles/my',
       fromJson: (json) {
         final List<dynamic> data = json as List<dynamic>;
-        return data.map((item) => HimxUserRole.fromJson(item as Map<String, dynamic>)).toList();
+        return data
+            .map((item) => HimxUserRole.fromJson(item as Map<String, dynamic>))
+            .toList();
       },
     );
   }
@@ -48,34 +52,55 @@ class HimxApi {
       fromJson: (json) => json as Map<String, dynamic>,
     );
   }
-}
 
-/// 聊天消息模型
-class ChatMessage {
-  final int id;
-  final String? q;
-  final String? a;
-  final String? createdTime;
-
-  ChatMessage({required this.id, this.q, this.a, this.createdTime});
-
-  factory ChatMessage.fromJson(Map<String, dynamic> json) {
-    return ChatMessage(
-      id: json['id'] as int,
-      q: json['q'] as String?,
-      a: json['a'] as String?,
-      createdTime: json['created_time'] as String?,
+  /// 聊天
+  /// [roleId] 角色ID
+  /// [q] 用户输入的问题
+  /// [lang] 语言 (en/zh/ja/ko/es)
+  /// 返回AI回复的ChatMessage
+  Future<ChatMessage> chat({
+    required int roleId,
+    required String q,
+    required String lang,
+  }) async {
+    return _apiClient.post<ChatMessage>(
+      path: '/rest/v1/himx/chat',
+      data: {'role_id': roleId, 'q': q, 'lang': lang},
+      fromJson: (json) {
+        // Response format: { "message": { "id":..., "q":..., "a":..., "created_time":... } }
+        final msgData = json['message'] as Map<String, dynamic>;
+        // We only care about the AI answer part for the return value
+        // But we construct a ChatMessage from the answer
+        final id = msgData['id'].toString();
+        final createdTime =
+            DateTime.tryParse(msgData['created_time'] ?? '') ?? DateTime.now();
+        return ChatMessage(
+          id: '${id}_a',
+          content: msgData['a'] ?? '',
+          isUser: false,
+          timestamp: createdTime,
+        );
+      },
     );
   }
-}
 
-/// 聊天响应模型
-class ChatResponse {
-  final ChatMessage message;
-
-  ChatResponse({required this.message});
-
-  factory ChatResponse.fromJson(Map<String, dynamic> json) {
-    return ChatResponse(message: ChatMessage.fromJson(json['message'] as Map<String, dynamic>));
+  /// 获取聊天记录
+  /// [roleId] 角色ID
+  /// 返回所有拆分后的消息列表（包括用户提问和AI回复）
+  Future<List<ChatMessage>> getChatList({required int roleId}) async {
+    return _apiClient.get<List<ChatMessage>>(
+      path: '/rest/v1/himx/chat/list',
+      queryParameters: {'role_id': roleId},
+      fromJson: (json) {
+        final List<dynamic> data = json as List<dynamic>;
+        final List<ChatMessage> allMessages = [];
+        for (var item in data) {
+          allMessages.addAll(
+            ChatMessage.listFromApiRecord(item as Map<String, dynamic>),
+          );
+        }
+        return allMessages;
+      },
+    );
   }
 }
