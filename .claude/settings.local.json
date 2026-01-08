@@ -8,7 +8,8 @@
       "Bash(curl:*)",
       "mcp__replicate__search",
       "mcp__replicate__create_models_predictions",
-      "mcp__replicate__get_predictions"
+      "mcp__replicate__get_predictions",
+      "Bash(flutter --version:*)"
     ],
     "deny": [],
     "ask": [],

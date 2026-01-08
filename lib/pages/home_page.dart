@@ -14,8 +14,8 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _HomePageState extends State<HomePage> {
+  int _currentTabIndex = 1;
   int _currentCarouselIndex = 0;
 
   final HimxApi _himxApi = HimxApi();
@@ -29,7 +29,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this, initialIndex: 1);
     _loadHomeData();
   }
 
@@ -54,7 +53,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
       // If user already has roles, default to "My Dates"
       if (_myRoles.isNotEmpty) {
-        _tabController.animateTo(0);
+        setState(() {
+          _currentTabIndex = 0;
+        });
       }
     } catch (e) {
       if (!mounted) return;
@@ -66,17 +67,20 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.pageBackground,
       body: Container(
-        decoration: const BoxDecoration(color: AppTheme.pageBackground),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.pageBackground,
+              AppTheme.pageBackground.withValues(alpha: 0.95),
+            ],
+          ),
+        ),
         child: SafeArea(
           child: Column(
             children: [
@@ -86,74 +90,57 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 child: Text('Date Him', style: AppTheme.titleTextStyle),
               ),
 
-              // Tab bar
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 40),
-                decoration: BoxDecoration(
-                  color: AppTheme.unselectedBackground,
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  indicator: BoxDecoration(
-                    borderRadius: BorderRadius.circular(25),
-                    color: AppTheme.selectedBackground,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.shadowOverlay.withValues(alpha: 0.4),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  dividerColor: Colors.transparent,
-                  labelColor: AppTheme.titleText,
-                  unselectedLabelColor: AppTheme.bodyText.withValues(alpha: 0.6),
-                  labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  tabs: [
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text('My Dates'),
-                          if (_myRoles.isNotEmpty)
-                            Container(
-                              margin: const EdgeInsets.only(left: 6),
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppTheme.shadowOverlay,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                '${_myRoles.length}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.buttonText,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const Tab(text: 'Discover'),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Tab content
+              // Content area
               Expanded(
                 child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const Center(child: CircularProgressIndicator(color: AppTheme.selectedBackground))
                     : (_errorMessage != null)
-                    ? _buildErrorState()
-                    : TabBarView(controller: _tabController, children: [_buildMyDatingsTab(), _buildDiscoverTab()]),
+                        ? _buildErrorState()
+                        : _currentTabIndex == 0
+                            ? _buildMyDatingsTab()
+                            : _buildDiscoverTab(),
               ),
             ],
           ),
+        ),
+      ),
+      // Bottom navigation bar
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.unselectedBackground.withValues(alpha: 0.9),
+          border: const Border(
+            top: BorderSide(
+              color: Color(0xFF7B4EFF),
+              width: 1,
+            ),
+          ),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentTabIndex,
+          onTap: (index) {
+            setState(() {
+              _currentTabIndex = index;
+            });
+          },
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          selectedItemColor: AppTheme.selectedBackground,
+          unselectedItemColor: AppTheme.bodyText.withValues(alpha: 0.5),
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          unselectedLabelStyle: const TextStyle(fontSize: 12),
+          items: [
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.favorite),
+              label: 'My Dates',
+              tooltip: 'My Dates (${_myRoles.length})',
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.explore),
+              label: 'Discover',
+              tooltip: 'Discover',
+            ),
+          ],
         ),
       ),
     );
@@ -166,7 +153,21 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.wifi_off, color: AppTheme.shadowOverlay, size: 64),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.unselectedBackground.withValues(alpha: 0.5),
+                    AppTheme.unselectedBackground.withValues(alpha: 0.2),
+                  ],
+                ),
+              ),
+              child: const Icon(Icons.wifi_off, color: AppTheme.shadowOverlay, size: 64),
+            ),
             const SizedBox(height: 16),
             const Text(
               'Failed to Load',
@@ -216,7 +217,24 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         children: [
           Container(
             padding: const EdgeInsets.all(30),
-            decoration: BoxDecoration(color: AppTheme.unselectedBackground, shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppTheme.unselectedBackground,
+                  AppTheme.unselectedBackground.withValues(alpha: 0.6),
+                ],
+              ),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.shadowOverlay.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
             child: Icon(Icons.favorite_border, size: 80, color: AppTheme.shadowOverlay),
           ),
           const SizedBox(height: 30),
@@ -229,7 +247,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           const SizedBox(height: 30),
           ElevatedButton.icon(
             onPressed: () {
-              _tabController.animateTo(1); // Switch to "Discover" Tab
+              setState(() {
+                _currentTabIndex = 1; // Switch to "Discover" Tab
+              });
             },
             icon: const Icon(Icons.explore),
             label: const Text('Discover'),
@@ -247,7 +267,28 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      decoration: AppTheme.unselectedBoxDecoration(borderRadius: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.unselectedBackground.withValues(alpha: 0.6),
+            AppTheme.unselectedBackground.withValues(alpha: 0.3),
+          ],
+        ),
+        border: Border.all(
+          color: AppTheme.selectedBackground.withValues(alpha: 0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.shadowOverlay.withValues(alpha: 0.15),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -260,12 +301,19 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             child: Row(
               children: [
                 // Avatar with 3:4 aspect ratio
-                SizedBox(
+                Container(
                   width: 90,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppTheme.selectedBackground.withValues(alpha: 0.5),
+                      width: 2,
+                    ),
+                  ),
                   child: AspectRatio(
                     aspectRatio: 3 / 4,
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       child: Image.network(
                         dating.imageUrl,
                         fit: BoxFit.cover,
@@ -307,7 +355,16 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 if (unreadCount > 0)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: AppTheme.shadowOverlay, borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(
+                      color: AppTheme.shadowOverlay,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.shadowOverlay.withValues(alpha: 0.4),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
                     child: Text(
                       unreadCount > 99 ? '99+' : '$unreadCount',
                       style: const TextStyle(color: AppTheme.buttonText, fontSize: 12, fontWeight: FontWeight.bold),
@@ -403,32 +460,68 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               width: 300,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.titleText, width: 8),
+                border: Border.all(
+                  color: isSelected ? AppTheme.selectedBackground : AppTheme.titleText,
+                  width: 8,
+                ),
                 boxShadow: isSelected
                     ? [
-                        BoxShadow(color: AppTheme.shadowOverlay.withValues(alpha: 0.4), blurRadius: 12, spreadRadius: 0),
                         BoxShadow(
-                          color: AppTheme.selectedBackground.withValues(alpha: 0.3),
-                          blurRadius: 16,
-                          spreadRadius: 0,
+                          color: AppTheme.shadowOverlay.withValues(alpha: 0.6),
+                          blurRadius: 20,
+                          spreadRadius: 4,
+                        ),
+                        BoxShadow(
+                          color: AppTheme.selectedBackground.withValues(alpha: 0.4),
+                          blurRadius: 24,
+                          spreadRadius: 2,
                         ),
                       ]
-                    : [BoxShadow(color: AppTheme.bodyText.withValues(alpha: 0.2), blurRadius: 8, spreadRadius: 0)],
+                    : [
+                        BoxShadow(
+                          color: AppTheme.bodyText.withValues(alpha: 0.15),
+                          blurRadius: 12,
+                          spreadRadius: 0,
+                        )
+                      ],
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(14),
-                child: Image.network(
-                  boyfriend.imageUrl,
-                  height: 360,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
+                child: Stack(
+                  children: [
+                    Image.network(
+                      boyfriend.imageUrl,
                       height: 360,
-                      color: Colors.grey.shade800,
-                      child: const Icon(Icons.person, size: 100, color: Colors.grey),
-                    );
-                  },
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 360,
+                          color: Colors.grey.shade800,
+                          child: const Icon(Icons.person, size: 100, color: Colors.grey),
+                        );
+                      },
+                    ),
+                    if (isSelected)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                AppTheme.shadowOverlay.withValues(alpha: 0.2),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -437,7 +530,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               onPressed: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => CharacterSettingsPage(role: boyfriend)));
               },
-              style: AppTheme.primaryButtonStyle(),
+              style: AppTheme.primaryButtonStyle(
+                borderRadius: 25,
+              ),
               child: const Text('Date with him', style: AppTheme.buttonTextStyle),
             ),
           ],
