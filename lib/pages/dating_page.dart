@@ -8,7 +8,8 @@ import '../models/song.dart';
 import '../theme/app_theme.dart';
 import '../services/himx_api.dart' as service;
 import 'diary_page.dart';
-import 'outfit_store_page.dart';
+import 'package:flutter/cupertino.dart';
+import '../widgets/glass_container.dart';
 
 class DatingPage extends StatefulWidget {
   final HimxRole role;
@@ -16,7 +17,7 @@ class DatingPage extends StatefulWidget {
   final String personality;
   final String userNickname;
 
-  const DatingPage({
+  DatingPage({
     super.key,
     required this.role,
     required this.nickname,
@@ -43,6 +44,8 @@ class _DatingPageState extends State<DatingPage> {
   // 当前显示的媒体 URL（预留：后续若需要在 UI 上显示/缓存可再使用）
   // ignore: unused_field
   String _currentMediaUrl = '';
+  String? _currentOutfitUrl; // 当前穿搭图片 URL
+  final TextEditingController _wardrobePromptController = TextEditingController(); // 换装提示词控制器
 
   // 音乐相关
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -56,9 +59,9 @@ class _DatingPageState extends State<DatingPage> {
   void initState() {
     super.initState();
     _currentMediaUrl = widget.role.videoUrl ?? widget.role.imageUrl;
-    if (widget.role.videoUrl != null) {
-      _initializeVideo(widget.role.videoUrl!);
-    }
+    // if (widget.role.videoUrl != null) {
+    //   _initializeVideo(widget.role.videoUrl!);
+    // }
     _setupAudioPlayer();
     _loadHistory();
   }
@@ -128,6 +131,7 @@ class _DatingPageState extends State<DatingPage> {
   void dispose() {
     _videoController?.dispose();
     _messageController.dispose();
+    _wardrobePromptController.dispose();
     _scrollController.dispose();
     _audioPlayer.dispose();
     super.dispose();
@@ -153,11 +157,7 @@ class _DatingPageState extends State<DatingPage> {
     _scrollToBottom();
 
     try {
-      final aiMessage = await _himxApi.chat(
-        roleId: widget.role.id,
-        q: content,
-        lang: 'zh',
-      );
+      final aiMessage = await _himxApi.chat(roleId: widget.role.id, q: content, lang: 'zh');
 
       if (!mounted) return;
 
@@ -172,9 +172,7 @@ class _DatingPageState extends State<DatingPage> {
       setState(() {
         _isLoading = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('发送失败: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('发送失败: $e')));
     }
   }
 
@@ -215,11 +213,7 @@ class _DatingPageState extends State<DatingPage> {
             const SizedBox(height: 20),
             const Text(
               '选择约会场景',
-              style: TextStyle(
-                color: AppTheme.titleText,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: AppTheme.titleText, fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             Expanded(
@@ -258,18 +252,13 @@ class _DatingPageState extends State<DatingPage> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected
-                ? AppTheme.selectedBackground
-                : AppTheme.shadowOverlay.withValues(alpha: 0.3),
+            color: isSelected ? AppTheme.selectedBackground : AppTheme.shadowOverlay.withValues(alpha: 0.3),
             width: isSelected ? 2 : 1,
           ),
           image: DecorationImage(
             image: NetworkImage(scene.imageUrl),
             fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(
-              Colors.black.withValues(alpha: 0.3),
-              BlendMode.darken,
-            ),
+            colorFilter: ColorFilter.mode(Colors.black.withValues(alpha: 0.3), BlendMode.darken),
           ),
         ),
         child: Stack(
@@ -284,19 +273,12 @@ class _DatingPageState extends State<DatingPage> {
                 children: [
                   Text(
                     scene.name,
-                    style: const TextStyle(
-                      color: AppTheme.pageBackground,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(color: AppTheme.pageBackground, fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     scene.description,
-                    style: TextStyle(
-                      color: AppTheme.pageBackground.withValues(alpha: 0.9),
-                      fontSize: 11,
-                    ),
+                    style: TextStyle(color: AppTheme.pageBackground.withValues(alpha: 0.9), fontSize: 11),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -309,15 +291,8 @@ class _DatingPageState extends State<DatingPage> {
                 right: 8,
                 child: Container(
                   padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: AppTheme.selectedBackground,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check,
-                    color: AppTheme.buttonText,
-                    size: 16,
-                  ),
+                  decoration: BoxDecoration(color: AppTheme.selectedBackground, shape: BoxShape.circle),
+                  child: const Icon(Icons.check, color: AppTheme.buttonText, size: 16),
                 ),
               ),
           ],
@@ -429,11 +404,7 @@ class _DatingPageState extends State<DatingPage> {
               const SizedBox(height: 20),
               Text(
                 '${widget.nickname} 的歌单',
-                style: const TextStyle(
-                  color: AppTheme.titleText,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(color: AppTheme.titleText, fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               Expanded(
@@ -465,14 +436,10 @@ class _DatingPageState extends State<DatingPage> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: isCurrent
-              ? AppTheme.selectedBackground.withValues(alpha: 0.3)
-              : AppTheme.pageBackground,
+          color: isCurrent ? AppTheme.selectedBackground.withValues(alpha: 0.3) : AppTheme.pageBackground,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isCurrent
-                ? AppTheme.selectedBackground
-                : AppTheme.shadowOverlay.withValues(alpha: 0.3),
+            color: isCurrent ? AppTheme.selectedBackground : AppTheme.shadowOverlay.withValues(alpha: 0.3),
             width: isCurrent ? 2 : 1,
           ),
         ),
@@ -497,10 +464,7 @@ class _DatingPageState extends State<DatingPage> {
                       width: 50,
                       height: 50,
                       color: Colors.grey.shade800,
-                      child: const Icon(
-                        Icons.music_note,
-                        color: Colors.white54,
-                      ),
+                      child: const Icon(Icons.music_note, color: Colors.white54),
                     );
                   },
                 ),
@@ -519,36 +483,18 @@ class _DatingPageState extends State<DatingPage> {
           ),
           title: Text(
             song.title,
-            style: const TextStyle(
-              color: AppTheme.titleText,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(color: AppTheme.titleText, fontSize: 16, fontWeight: FontWeight.w500),
           ),
-          subtitle: Text(
-            song.artist,
-            style: const TextStyle(color: AppTheme.bodyText, fontSize: 13),
-          ),
+          subtitle: Text(song.artist, style: const TextStyle(color: AppTheme.bodyText, fontSize: 13)),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                _formatDuration(song.duration),
-                style: const TextStyle(color: AppTheme.bodyText, fontSize: 13),
-              ),
+              Text(_formatDuration(song.duration), style: const TextStyle(color: AppTheme.bodyText, fontSize: 13)),
               const SizedBox(width: 8),
               if (isPlaying)
-                const Icon(
-                  Icons.equalizer,
-                  color: AppTheme.shadowOverlay,
-                  size: 24,
-                )
+                const Icon(Icons.equalizer, color: AppTheme.shadowOverlay, size: 24)
               else if (song.isUnlocked)
-                const Icon(
-                  Icons.play_circle_outline,
-                  color: AppTheme.bodyText,
-                  size: 24,
-                ),
+                const Icon(Icons.play_circle_outline, color: AppTheme.bodyText, size: 24),
             ],
           ),
         ),
@@ -564,9 +510,7 @@ class _DatingPageState extends State<DatingPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: AppTheme.unselectedBackground,
-        border: Border(
-          top: BorderSide(color: AppTheme.shadowOverlay.withValues(alpha: 0.3)),
-        ),
+        border: Border(top: BorderSide(color: AppTheme.shadowOverlay.withValues(alpha: 0.3))),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -575,12 +519,7 @@ class _DatingPageState extends State<DatingPage> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(6),
-                child: Image.network(
-                  _currentSong!.coverUrl,
-                  width: 40,
-                  height: 40,
-                  fit: BoxFit.cover,
-                ),
+                child: Image.network(_currentSong!.coverUrl, width: 40, height: 40, fit: BoxFit.cover),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -589,21 +528,11 @@ class _DatingPageState extends State<DatingPage> {
                   children: [
                     Text(
                       _currentSong!.title,
-                      style: const TextStyle(
-                        color: AppTheme.titleText,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: const TextStyle(color: AppTheme.titleText, fontSize: 14, fontWeight: FontWeight.w500),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    Text(
-                      _currentSong!.artist,
-                      style: const TextStyle(
-                        color: AppTheme.bodyText,
-                        fontSize: 12,
-                      ),
-                    ),
+                    Text(_currentSong!.artist, style: const TextStyle(color: AppTheme.bodyText, fontSize: 12)),
                   ],
                 ),
               ),
@@ -620,10 +549,7 @@ class _DatingPageState extends State<DatingPage> {
           const SizedBox(height: 8),
           Row(
             children: [
-              Text(
-                _formatDuration(_currentPosition),
-                style: const TextStyle(color: AppTheme.bodyText, fontSize: 11),
-              ),
+              Text(_formatDuration(_currentPosition), style: const TextStyle(color: AppTheme.bodyText, fontSize: 11)),
               Expanded(
                 child: Slider(
                   value: _currentPosition.inSeconds.toDouble(),
@@ -635,10 +561,7 @@ class _DatingPageState extends State<DatingPage> {
                   },
                 ),
               ),
-              Text(
-                _formatDuration(_totalDuration),
-                style: const TextStyle(color: AppTheme.bodyText, fontSize: 11),
-              ),
+              Text(_formatDuration(_totalDuration), style: const TextStyle(color: AppTheme.bodyText, fontSize: 11)),
             ],
           ),
         ],
@@ -688,20 +611,294 @@ class _DatingPageState extends State<DatingPage> {
 
   // Open diary page
   void _openDiary() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DiaryPage(role: widget.role),
-      ),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => DiaryPage(role: widget.role)));
   }
 
-  // Open outfit store page
-  void _openOutfitStore() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => OutfitStorePage(role: widget.role),
+  // Predefined outfits for the role (Mock data)
+  final List<String> _predefinedOutfits = [
+    'https://api.dicebear.com/9.x/avataaars/png?seed=outfit1',
+    'https://api.dicebear.com/9.x/avataaars/png?seed=outfit2',
+    'https://api.dicebear.com/9.x/avataaars/png?seed=outfit3',
+    'https://api.dicebear.com/9.x/avataaars/png?seed=outfit4',
+  ];
+
+  void _showWardrobeModal() {
+    String? tempPreviewUrl;
+    bool isGenerating = false;
+    String mode = 'prompt'; // 'prompt' or 'reference'
+    String? selectedReferenceImage;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+              border: Border.all(color: Colors.white10),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Wardrobe',
+                      style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white70),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // 1. Predefined Outfits
+                const Text(
+                  'Predefined Outfits',
+                  style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 100,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _predefinedOutfits.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (context, index) {
+                      final url = _predefinedOutfits[index];
+                      final isSelected = _currentOutfitUrl == url;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() => _currentOutfitUrl = url);
+                          setModalState(() {});
+                        },
+                        child: Container(
+                          width: 80,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: isSelected ? Colors.purpleAccent : Colors.white10, width: 2),
+                            image: DecorationImage(image: NetworkImage(url), fit: BoxFit.cover),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // 2. AI Custom Generation
+                const Text(
+                  'Custom Expression',
+                  style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setModalState(() => mode = 'prompt'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: mode == 'prompt' ? Colors.purpleAccent.withValues(alpha: 0.2) : Colors.transparent,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Prompt',
+                                style: TextStyle(
+                                  color: mode == 'prompt' ? Colors.purpleAccent : Colors.white60,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setModalState(() => mode = 'reference'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: mode == 'reference'
+                                  ? Colors.purpleAccent.withValues(alpha: 0.2)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Reference',
+                                style: TextStyle(
+                                  color: mode == 'reference' ? Colors.purpleAccent : Colors.white60,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (mode == 'prompt')
+                  TextField(
+                    controller: _wardrobePromptController,
+                    style: const TextStyle(color: Colors.white),
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: 'Describe the outfit or style...',
+                      hintStyle: const TextStyle(color: Colors.white30),
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.05),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                    ),
+                  )
+                else
+                  GestureDetector(
+                    onTap: () {
+                      // Mock Image Picker
+                      setModalState(
+                        () => selectedReferenceImage = 'https://api.dicebear.com/9.x/avataaars/png?seed=ref',
+                      );
+                    },
+                    child: Container(
+                      height: 100,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white12, style: BorderStyle.solid),
+                      ),
+                      child: selectedReferenceImage != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.network(selectedReferenceImage!, fit: BoxFit.cover),
+                            )
+                          : const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_photo_alternate, color: Colors.white54, size: 32),
+                                SizedBox(height: 8),
+                                Text('Select Reference Image', style: TextStyle(color: Colors.white30)),
+                              ],
+                            ),
+                    ),
+                  ),
+
+                const SizedBox(height: 24),
+
+                // Generation Preview Area
+                if (tempPreviewUrl != null || isGenerating)
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: isGenerating
+                          ? const Center(child: CircularProgressIndicator(color: Colors.purpleAccent))
+                          : ClipRRect(
+                              borderRadius: BorderRadius.circular(24),
+                              child: Stack(
+                                children: [
+                                  Image.network(
+                                    tempPreviewUrl!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                  ),
+                                  Positioned(
+                                    bottom: 16,
+                                    left: 16,
+                                    right: 16,
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: ElevatedButton(
+                                            onPressed: () {
+                                              setState(() => _currentOutfitUrl = tempPreviewUrl);
+                                              Navigator.pop(context);
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.purpleAccent,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                            ),
+                                            child: const Text('Apply', style: TextStyle(color: Colors.white)),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: OutlinedButton(
+                                            onPressed: () => setModalState(() => tempPreviewUrl = null),
+                                            style: OutlinedButton.styleFrom(
+                                              side: const BorderSide(color: Colors.white30),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                            ),
+                                            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                    ),
+                  )
+                else
+                  const Spacer(),
+
+                if (!isGenerating && tempPreviewUrl == null)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed:
+                          (mode == 'prompt' && _wardrobePromptController.text.isEmpty) ||
+                              (mode == 'reference' && selectedReferenceImage == null)
+                          ? null
+                          : () async {
+                              setModalState(() => isGenerating = true);
+                              await Future.delayed(const Duration(seconds: 2));
+                              setModalState(() {
+                                isGenerating = false;
+                                tempPreviewUrl =
+                                    'https://api.dicebear.com/9.x/avataaars/png?seed=${DateTime.now().millisecondsSinceEpoch}';
+                              });
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purpleAccent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        disabledBackgroundColor: Colors.white10,
+                      ),
+                      child: const Text(
+                        'Generate Expression',
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -712,10 +909,11 @@ class _DatingPageState extends State<DatingPage> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 背景角色图片/视频覆盖整个页面
+          // 1. Media Display (Background Layer)
           _buildMediaDisplay(),
 
-          // 聊天区域 - 黑色渐变背景
+          // 2. Chat Area (Bottom Gradient & List) - Behind menus? Or below?
+          // Let's keep it full width at bottom, but maybe adjust padding so it doesn't conflict with menus if they overlap
           Positioned(
             left: 0,
             right: 0,
@@ -737,11 +935,11 @@ class _DatingPageState extends State<DatingPage> {
               ),
               child: ListView.builder(
                 controller: _scrollController,
+                // Adjust padding to avoid covering the input area
                 padding: const EdgeInsets.fromLTRB(16, 60, 16, 100),
                 reverse: true,
                 itemCount: _messages.length + (_isLoading ? 1 : 0),
                 itemBuilder: (context, index) {
-                  // 如果正在加载，第一项显示加载提示
                   if (index == 0 && _isLoading) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -751,25 +949,17 @@ class _DatingPageState extends State<DatingPage> {
                           const SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white70,
-                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white70),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             '${widget.nickname} 正在输入...',
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                            ),
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
                           ),
                         ],
                       ),
                     );
                   }
-
-                  // 正常消息
                   final messageIndex = _isLoading ? index - 1 : index;
                   final reversedIndex = _messages.length - 1 - messageIndex;
                   return _buildMessageBubble(_messages[reversedIndex]);
@@ -778,41 +968,141 @@ class _DatingPageState extends State<DatingPage> {
             ),
           ),
 
-          // 输入框悬浮在底部，无背景
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 20,
-            child: _buildMessageInput(),
-          ),
-
-          // 返回按钮
-          Positioned(
-            top: 50,
-            left: 20,
-            child: Material(
-              color: Colors.black.withValues(alpha: 0.5),
-              shape: const CircleBorder(),
-              child: InkWell(
-                onTap: () => Navigator.pop(context),
-                customBorder: const CircleBorder(),
-                child: const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Icon(Icons.arrow_back, color: Colors.white, size: 24),
-                ),
-              ),
+          // 3. UI Overlay (Top Bar, Menus)
+          SafeArea(
+            child: Stack(
+              children: [
+                // Top Bar
+                Positioned(top: 0, left: 0, right: 0, child: _buildTopBar()),
+                // Right Menu (Functional Buttons with Glass Style)
+                Positioned(right: 16, top: 120, bottom: 120, width: 90, child: _buildRightMenu()),
+              ],
             ),
           ),
 
-          // 功能按钮
-          Positioned(top: 120, right: 20, child: _buildFunctionButtons()),
+          // 4. Chat Input (Bottom)
+          Positioned(left: 16, right: 16, bottom: 20, child: _buildMessageInput()),
+
+          // Back Button (retained if needed, or rely on Top Bar back?)
+          // _buildTopBar has no back button in Wardrobe, but DatingPage needs one.
+          // I will add a back button to _buildTopBar or keep it separate.
+          // Wardrobe TopBar replaced the visual space. Let's add a small back button
+          // to top-left or assume user swipes back.
+          // For safety, let's keep the explicit back button but style it better or
+          // integrate into TopBar. I'll integrate it into TopBar logic.
         ],
       ),
     );
   }
 
+  Widget _buildTopBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Back Button
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.black.withValues(alpha: 0.3),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1),
+              ),
+              child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+            ),
+          ),
+
+          // Menu Button
+          GestureDetector(
+            onTap: () {
+              // TODO: Add menu logic
+            },
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.black.withValues(alpha: 0.3),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1),
+              ),
+              child: const Icon(Icons.menu, color: Colors.white, size: 20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRightMenu() {
+    // Map existing features to this menu style
+    // Features: Date, Sing, Diary, Gift
+    final menuItems = [
+      (icon: Icons.favorite, label: 'Date', color: Colors.pink, onTap: _showSceneSelector),
+      (icon: Icons.music_note, label: 'Sing', color: Colors.purple, onTap: _showSongList),
+      (icon: Icons.book, label: 'Diary', color: Colors.blue, onTap: _openDiary),
+      (icon: Icons.checkroom, label: 'Wardrobe', color: Colors.purpleAccent, onTap: _showWardrobeModal),
+    ];
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.separated(
+            padding: EdgeInsets.zero,
+            itemCount: menuItems.length,
+            separatorBuilder: (c, i) => const SizedBox(height: 10),
+            itemBuilder: (context, index) {
+              final item = menuItems[index];
+              return GestureDetector(
+                onTap: item.onTap,
+                child: GlassContainer(
+                  height: 90, // Slightly smaller than Wardrobe's 110 to fit 4 items
+                  borderRadius: BorderRadius.circular(20),
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(item.icon, color: item.color, size: 32),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.label,
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildMediaDisplay() {
-    // 如果有视频控制器且已初始化，显示视频
+    // 显示图片（优先使用换装后的图片，否则使用当前场景图片或默认角色图片）
+    final imageUrl = _currentOutfitUrl ?? _currentScene?.imageUrl ?? widget.role.imageUrl;
+
+    // 如果有换装，强制显示图片（换装暂不持支视频）
+    if (_currentOutfitUrl != null) {
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: Colors.black,
+            child: const Center(child: Icon(Icons.person, size: 100, color: Colors.white54)),
+          );
+        },
+      );
+    }
+
+    // 如果没有换装，则按原逻辑判断视频和场景图片
     if (_videoController != null && _videoController!.value.isInitialized) {
       return SizedBox.expand(
         child: FittedBox(
@@ -830,14 +1120,11 @@ class _DatingPageState extends State<DatingPage> {
     if (_videoController != null && !_videoController!.value.isInitialized) {
       return Container(
         color: Colors.black,
-        child: const Center(
-          child: CircularProgressIndicator(color: Colors.white),
-        ),
+        child: const Center(child: CircularProgressIndicator(color: Colors.white)),
       );
     }
 
     // 显示图片（使用当前场景的图片或默认图片）
-    final imageUrl = _currentScene?.imageUrl ?? widget.role.imageUrl;
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 500),
       child: Image.network(
@@ -849,68 +1136,9 @@ class _DatingPageState extends State<DatingPage> {
         errorBuilder: (context, error, stackTrace) {
           return Container(
             color: Colors.black,
-            child: const Center(
-              child: Icon(Icons.person, size: 100, color: Colors.white54),
-            ),
+            child: const Center(child: Icon(Icons.person, size: 100, color: Colors.white54)),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildFunctionButtons() {
-    final buttons = [
-      {'icon': Icons.favorite, 'label': 'Date', 'color': Colors.pink},
-      {'icon': Icons.music_note, 'label': 'Sing', 'color': Colors.purple},
-      {'icon': Icons.book, 'label': 'Diary', 'color': Colors.blue},
-      {'icon': Icons.card_giftcard, 'label': 'Gift', 'color': Colors.orange},
-    ];
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: buttons.map((button) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: _buildFunctionButton(
-            icon: button['icon'] as IconData,
-            label: button['label'] as String,
-            color: button['color'] as Color,
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildFunctionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-  }) {
-    return Material(
-      color: AppTheme.unselectedBackground,
-      shape: const CircleBorder(),
-      elevation: 4,
-      child: InkWell(
-        onTap: () {
-          if (label == 'Date') {
-            _showSceneSelector();
-          } else if (label == 'Sing') {
-            _showSongList();
-          } else if (label == 'Diary') {
-            _openDiary();
-          } else if (label == 'Gift') {
-            _openOutfitStore();
-          } else {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('$label feature coming soon...')));
-          }
-        },
-        customBorder: const CircleBorder(),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Icon(icon, color: color, size: 28),
-        ),
       ),
     );
   }
@@ -923,10 +1151,7 @@ class _DatingPageState extends State<DatingPage> {
       builder: (context, value, child) {
         return Opacity(
           opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, 10 * (1 - value)),
-            child: child,
-          ),
+          child: Transform.translate(offset: Offset(0, 10 * (1 - value)), child: child),
         );
       },
       child: Padding(
@@ -936,9 +1161,7 @@ class _DatingPageState extends State<DatingPage> {
             message.content,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: message.isUser
-                  ? AppTheme.shadowOverlay
-                  : AppTheme.pageBackground,
+              color: message.isUser ? AppTheme.shadowOverlay : AppTheme.pageBackground,
               fontSize: 16,
               height: 1.5,
             ),
@@ -959,34 +1182,22 @@ class _DatingPageState extends State<DatingPage> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: '输入消息...',
-                hintStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
-                ),
+                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.3),
-                  ),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.3),
-                  ),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    width: 1.5,
-                  ),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.6), width: 1.5),
                 ),
                 filled: true,
                 fillColor: Colors.black.withValues(alpha: 0.3),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               onSubmitted: (_) => _sendMessage(),
             ),

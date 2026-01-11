@@ -14,10 +14,7 @@ class MyApp extends StatelessWidget {
       title: 'Date Him - AI虚拟男友',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.pink,
-          brightness: Brightness.light,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.pink, brightness: Brightness.light),
         useMaterial3: true,
         fontFamily: 'IBMPlexSans',
       ),
