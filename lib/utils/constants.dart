@@ -4,11 +4,7 @@ class AppConstants {
   static const String loginWithAppleEndpoint = '/auth/login/apple';
   static const String userInfoEndpoint = '/rest/v1/user/info';
   static const String checkRevenuecatStatusEndpoint = '/rest/v1/order/revenuecat/checkstatus';
-  static const String uploadImageEndpoint = '/rest/v1/ghostcamera/file/upload';
-  static const String generateGhostImageEndpoint = '/rest/v1/ghostcamera/image/generate';
-  static const String generateGhostVideoEndpoint = '/rest/v1/ghostcamera/video/generate';
-  static const String galleryEndpoint = '/rest/v1/ghostcamera/my/gallerys';
-  static const String videoStatusEndpoint = '/rest/v1/ghostcamera/video/status';
+  static const String uploadImageEndpoint = '/common/file/upload';
 
   // App Settings
   static const String appName = 'GhostSnap';

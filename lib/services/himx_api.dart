@@ -2,6 +2,7 @@ import 'api_client.dart';
 import 'package:himx/models/chat_message.dart';
 import 'package:himx/models/himx_role.dart';
 import 'package:himx/models/himx_user_role.dart';
+import 'package:himx/models/himx_photo.dart';
 
 class HimxApi {
   final ApiClient _apiClient = ApiClient();
@@ -101,6 +102,68 @@ class HimxApi {
         }
         return allMessages;
       },
+    );
+  }
+
+  /// 生成约会照片
+  /// [roleId] 角色ID
+  /// [location] 约会地点
+  /// [characterImageUrl] 角色图片URL
+  /// [userImageUrl] 用户图片URL（可选）
+  /// [aspectRatio] 图片宽高比（默认为"3:4"）
+  /// 返回生成的照片数据
+  Future<HimxPhoto> generateDatingPhoto({
+    required String roleId,
+    required String location,
+    required String characterImageUrl,
+    String? userImageUrl,
+    String aspectRatio = '3:4',
+  }) async {
+    return _apiClient.post<HimxPhoto>(
+      path: '/rest/v1/himx/dating/photo/generate',
+      data: {
+        'role_id': roleId,
+        'location': location,
+        'character_image_url': characterImageUrl,
+        'user_image_url': userImageUrl,
+        'aspect_ratio': aspectRatio,
+      },
+      fromJson: (json) => HimxPhoto.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// 获取相册列表
+  /// [roleId] 角色ID
+  /// [pageSize] 每页数量（默认20）
+  /// [pageNumber] 页码（默认1）
+  /// 返回照片列表
+  Future<List<HimxPhoto>> getPhotoList({
+    required String roleId,
+    int pageSize = 20,
+    int pageNumber = 1,
+  }) async {
+    return _apiClient.get<List<HimxPhoto>>(
+      path: '/rest/v1/himx/photo/list',
+      queryParameters: {
+        'role_id': roleId,
+        'page_size': pageSize,
+        'page_number': pageNumber,
+      },
+      fromJson: (json) {
+        final List<dynamic> data = json as List<dynamic>;
+        return data
+            .map((item) => HimxPhoto.fromJson(item as Map<String, dynamic>))
+            .toList();
+      },
+    );
+  }
+
+  /// 删除照片
+  /// [photoId] 照片ID
+  Future<void> deletePhoto({required int photoId}) async {
+    await _apiClient.delete<Map<String, dynamic>>(
+      path: '/rest/v1/himx/photo/$photoId',
+      fromJson: (json) => json as Map<String, dynamic>,
     );
   }
 }

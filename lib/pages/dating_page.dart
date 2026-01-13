@@ -1,12 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/himx_role.dart';
 import '../models/chat_message.dart';
-import '../models/date_scene.dart';
 import '../models/song.dart';
 import '../theme/app_theme.dart';
 import '../services/himx_api.dart' as service;
+import '../services/api_client.dart';
 import 'diary_page.dart';
 import 'package:flutter/cupertino.dart';
 import '../widgets/glass_container.dart';
@@ -32,20 +34,20 @@ class DatingPage extends StatefulWidget {
 class _DatingPageState extends State<DatingPage> {
   VideoPlayerController? _videoController;
   final service.HimxApi _himxApi = service.HimxApi();
+  final ApiClient _apiClient = ApiClient();
+  final ImagePicker _imagePicker = ImagePicker();
   final TextEditingController _messageController = TextEditingController();
   final List<ChatMessage> _messages = [];
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = false;
 
-  // 场景相关
-  DateScene? _currentScene;
-  final List<DateScene> _availableScenes = DateScenes.getPresetScenes();
-  final Map<String, DateScene> _initializedScenes = {}; // 已初始化的场景
-  // 当前显示的媒体 URL（预留：后续若需要在 UI 上显示/缓存可再使用）
-  // ignore: unused_field
-  String _currentMediaUrl = '';
   String? _currentOutfitUrl; // 当前穿搭图片 URL
   final TextEditingController _wardrobePromptController = TextEditingController(); // 换装提示词控制器
+  final TextEditingController _datingLocationController = TextEditingController(); // 约会地点控制器
+  String? _userPhotoUrl; // 用户照片 URL (可选)
+  String? _datingPreviewUrl; // 生成的约会照片预览 URL
+  final TextEditingController _songInputController = TextEditingController(); // 歌曲输入控制器
+  bool _isLearningSong = false; // 是否正在学习歌曲
 
   // 音乐相关
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -58,7 +60,6 @@ class _DatingPageState extends State<DatingPage> {
   @override
   void initState() {
     super.initState();
-    _currentMediaUrl = widget.role.videoUrl ?? widget.role.imageUrl;
     // if (widget.role.videoUrl != null) {
     //   _initializeVideo(widget.role.videoUrl!);
     // }
@@ -116,22 +117,13 @@ class _DatingPageState extends State<DatingPage> {
     });
   }
 
-  void _initializeVideo(String videoUrl) {
-    _videoController?.dispose();
-    _videoController = VideoPlayerController.networkUrl(Uri.parse(videoUrl))
-      ..initialize().then((_) {
-        if (!mounted) return;
-        setState(() {});
-        _videoController?.setLooping(true);
-        _videoController?.play();
-      });
-  }
-
   @override
   void dispose() {
     _videoController?.dispose();
     _messageController.dispose();
     _wardrobePromptController.dispose();
+    _datingLocationController.dispose();
+    _songInputController.dispose();
     _scrollController.dispose();
     _audioPlayer.dispose();
     super.dispose();
@@ -188,240 +180,561 @@ class _DatingPageState extends State<DatingPage> {
     });
   }
 
-  // 显示场景选择底部弹窗
-  void _showSceneSelector() {
+  // 显示约会地点选择底部弹窗
+  void _showDatingSelector() {
+    String? tempSelectedCharacterImage = _currentOutfitUrl ?? widget.role.imageUrl;
+    String? tempUserPhotoUrl = _userPhotoUrl;
+    bool isGenerating = false;
+    final ScrollController modalScrollController = ScrollController(); // 添加滚动控制器
+
+    // Available character images: avatar + wardrobe
+    final List<String> characterImages = [widget.role.imageUrl, ..._predefinedOutfits];
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: AppTheme.unselectedBackground,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.shadowOverlay.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(2),
-              ),
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.9,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+              border: Border.all(color: Colors.white10),
             ),
-            const SizedBox(height: 20),
-            const Text(
-              '选择约会场景',
-              style: TextStyle(color: AppTheme.titleText, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 1.2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
+            child: Column(
+              children: [
+                // 顶部标题栏（固定）
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        '定制约会',
+                        style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white70),
+                        onPressed: () {
+                          debugPrint('🚪 点击关闭按钮');
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-                itemCount: _availableScenes.length,
-                itemBuilder: (context, index) {
-                  final scene = _availableScenes[index];
-                  return _buildSceneCard(scene);
-                },
-              ),
+                const SizedBox(height: 24),
+
+                // 可滚动内容
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: modalScrollController, // 使用滚动控制器
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 1. Dating Location Input
+                        const Text(
+                          '约会地点',
+                          style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _datingLocationController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: '输入你想去的地方...',
+                            hintStyle: const TextStyle(color: Colors.white30),
+                            filled: true,
+                            fillColor: Colors.white.withValues(alpha: 0.05),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // 2. Character Image Selection
+                        const Text(
+                          '选择角色的穿搭',
+                          style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 100,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: characterImages.length,
+                            separatorBuilder: (_, __) => const SizedBox(width: 12),
+                            itemBuilder: (context, index) {
+                              final url = characterImages[index];
+                              final isSelected = tempSelectedCharacterImage == url;
+                              return GestureDetector(
+                                onTap: () => setModalState(() => tempSelectedCharacterImage = url),
+                                child: Container(
+                                  width: 80,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: isSelected ? Colors.purpleAccent : Colors.white10,
+                                      width: 2,
+                                    ),
+                                    image: DecorationImage(image: NetworkImage(url), fit: BoxFit.cover),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // 3. User Photo (Optional)
+                        const Text(
+                          '我的照片 (可选)',
+                          style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 12),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () async {
+                              debugPrint('📸 点击选择照片');
+                              try {
+                                // 从相册选择照片
+                                debugPrint('📸 开始打开相册选择器');
+                                final XFile? image = await _imagePicker.pickImage(
+                                  source: ImageSource.gallery,
+                                  maxWidth: 1280,
+                                  maxHeight: 1280,
+                                  imageQuality: 85,
+                                );
+
+                                debugPrint('📸 选择结果: ${image?.path ?? "未选择"}');
+                                if (image == null) {
+                                  debugPrint('📸 用户取消选择');
+                                  return;
+                                }
+
+                                // 显示上传中状态
+                                debugPrint('📸 开始上传照片');
+                                setModalState(() => tempUserPhotoUrl = 'uploading');
+
+                                // 上传照片到服务器
+                                final imageUrl = await _apiClient.uploadImage(File(image.path));
+                                debugPrint('📸 上传成功: $imageUrl');
+
+                                // 更新照片 URL
+                                if (!mounted) return;
+                                setModalState(() => tempUserPhotoUrl = imageUrl);
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('照片上传成功'),
+                                    backgroundColor: Colors.green,
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              } catch (e, stackTrace) {
+                                debugPrint('📸 错误: $e');
+                                debugPrint('📸 堆栈: $stackTrace');
+                                if (!mounted) return;
+                                setModalState(() => tempUserPhotoUrl = null);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('上传照片失败: $e'),
+                                    backgroundColor: Colors.red,
+                                    duration: const Duration(seconds: 3),
+                                  ),
+                                );
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              height: 80,
+                              width: 80,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.white10),
+                              ),
+                              child: Stack(
+                                children: [
+                                  Center(
+                                    child: tempUserPhotoUrl == 'uploading'
+                                        ? const SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.purpleAccent,
+                                            ),
+                                          )
+                                        : tempUserPhotoUrl != null
+                                        ? ClipRRect(
+                                            borderRadius: BorderRadius.circular(16),
+                                            child: Image.network(
+                                              tempUserPhotoUrl!,
+                                              fit: BoxFit.cover,
+                                              width: 80,
+                                              height: 80,
+                                            ),
+                                          )
+                                        : const Icon(Icons.add_a_photo, color: Colors.white54),
+                                  ),
+                                  // 删除按钮
+                                  if (tempUserPhotoUrl != null && tempUserPhotoUrl != 'uploading')
+                                    Positioned(
+                                      top: 2,
+                                      right: 2,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          debugPrint('📸 点击删除照片');
+                                          setModalState(() => tempUserPhotoUrl = null);
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.black54,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // 4. Generation & Preview
+                        if (_datingPreviewUrl != null || isGenerating)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 图片预览
+                              Container(
+                                height: 400,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(color: Colors.white10),
+                                ),
+                                child: isGenerating
+                                    ? const Center(child: CircularProgressIndicator(color: Colors.purpleAccent))
+                                    : ClipRRect(
+                                        borderRadius: BorderRadius.circular(24),
+                                        child: Image.network(_datingPreviewUrl!, fit: BoxFit.cover),
+                                      ),
+                              ),
+
+                              // 按钮区域（不再覆盖在图片上）
+                              if (!isGenerating && _datingPreviewUrl != null) ...[
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            _currentOutfitUrl = _datingPreviewUrl;
+                                            _userPhotoUrl = tempUserPhotoUrl;
+                                          });
+                                          Navigator.pop(context);
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.purpleAccent,
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                        child: const Text(
+                                          '应用修改',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: OutlinedButton(
+                                        onPressed: () async {
+                                          if (tempSelectedCharacterImage == null) return;
+                                          setModalState(() => isGenerating = true);
+                                          try {
+                                            final photo = await _himxApi.generateDatingPhoto(
+                                              roleId: widget.role.roleId,
+                                              location: _datingLocationController.text.trim(),
+                                              characterImageUrl: tempSelectedCharacterImage!,
+                                              userImageUrl: tempUserPhotoUrl,
+                                              aspectRatio: '3:4',
+                                            );
+                                            if (!mounted) return;
+                                            setModalState(() {
+                                              isGenerating = false;
+                                              _datingPreviewUrl = photo.imageUrl;
+                                            });
+                                            // 滚动到底部，露出图片和按钮
+                                            Future.delayed(const Duration(milliseconds: 300), () {
+                                              if (modalScrollController.hasClients) {
+                                                modalScrollController.animateTo(
+                                                  modalScrollController.position.maxScrollExtent,
+                                                  duration: const Duration(milliseconds: 500),
+                                                  curve: Curves.easeOut,
+                                                );
+                                              }
+                                            });
+                                          } catch (e) {
+                                            if (!mounted) return;
+                                            setModalState(() => isGenerating = false);
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(SnackBar(content: Text('生成失败: $e')));
+                                          }
+                                        },
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                          side: const BorderSide(color: Colors.white30),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                        child: const Text(
+                                          '重新生成',
+                                          style: TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+
+                        const SizedBox(height: 80),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 底部按钮（固定）
+                if (!isGenerating && _datingPreviewUrl == null)
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: _datingLocationController.text.isEmpty || tempSelectedCharacterImage == null
+                            ? null
+                            : () async {
+                                debugPrint('🎨 点击生成约会照片按钮');
+                                setModalState(() => isGenerating = true);
+                                try {
+                                  final photo = await _himxApi.generateDatingPhoto(
+                                    roleId: widget.role.roleId,
+                                    location: _datingLocationController.text.trim(),
+                                    characterImageUrl: tempSelectedCharacterImage!,
+                                    userImageUrl: tempUserPhotoUrl,
+                                  );
+                                  if (!mounted) return;
+                                  setModalState(() {
+                                    isGenerating = false;
+                                    _datingPreviewUrl = photo.imageUrl;
+                                  });
+                                  // 滚动到底部，露出图片和按钮
+                                  Future.delayed(const Duration(milliseconds: 300), () {
+                                    if (modalScrollController.hasClients) {
+                                      modalScrollController.animateTo(
+                                        modalScrollController.position.maxScrollExtent,
+                                        duration: const Duration(milliseconds: 500),
+                                        curve: Curves.easeOut,
+                                      );
+                                    }
+                                  });
+                                } catch (e) {
+                                  debugPrint('🎨 生成失败: $e');
+                                  if (!mounted) return;
+                                  setModalState(() => isGenerating = false);
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('生成失败: $e')));
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purpleAccent,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          disabledBackgroundColor: Colors.white10,
+                        ),
+                        child: const Text(
+                          '生成约会照片',
+                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(height: 20),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  // 构建场景卡片
-  Widget _buildSceneCard(DateScene scene) {
-    final isSelected = _currentScene?.id == scene.id;
-
-    return GestureDetector(
-      onTap: () {
-        Navigator.pop(context);
-        _selectScene(scene);
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppTheme.selectedBackground : AppTheme.shadowOverlay.withValues(alpha: 0.3),
-            width: isSelected ? 2 : 1,
-          ),
-          image: DecorationImage(
-            image: NetworkImage(scene.imageUrl),
-            fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(Colors.black.withValues(alpha: 0.3), BlendMode.darken),
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              bottom: 8,
-              left: 8,
-              right: 8,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    scene.name,
-                    style: const TextStyle(color: AppTheme.pageBackground, fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    scene.description,
-                    style: TextStyle(color: AppTheme.pageBackground.withValues(alpha: 0.9), fontSize: 11),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            if (isSelected)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(color: AppTheme.selectedBackground, shape: BoxShape.circle),
-                  child: const Icon(Icons.check, color: AppTheme.buttonText, size: 16),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // 选择场景
-  Future<void> _selectScene(DateScene scene) async {
-    // 添加系统消息提示切换场景
-    final systemMessage = ChatMessage(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      content: '场景已切换到：${scene.name}',
-      isUser: false,
-      timestamp: DateTime.now(),
-    );
-
-    setState(() {
-      _messages.add(systemMessage);
-      _currentScene = scene;
-    });
-
-    _scrollToBottom();
-
-    // 检查场景是否已初始化
-    if (_initializedScenes.containsKey(scene.id)) {
-      // 已初始化，直接使用缓存的场景数据
-      final initializedScene = _initializedScenes[scene.id]!;
-      _changeSceneMedia(initializedScene);
-    } else {
-      // 未初始化，调用初始化接口
-      await _initializeScene(scene);
-    }
-  }
-
-  // Initialize scene (call backend API)
-  Future<void> _initializeScene(DateScene scene) async {
-    // TODO: Call backend API to initialize scene
-    // Example API call:
-    // final response = await ApiService.initializeScene(
-    //   roleId: widget.role.id,
-    //   sceneId: scene.id,
-    // );
-    //
-    // final initializedScene = scene.copyWith(
-    //   imageUrl: response.imageUrl,
-    //   videoUrl: response.videoUrl,
-    //   isInitialized: true,
-    // );
-
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (!mounted) return;
-
-    // Use preset images for now, should come from API response
-    final initializedScene = scene.copyWith(isInitialized: true);
-
-    setState(() {
-      _initializedScenes[scene.id] = initializedScene;
-    });
-
-    _changeSceneMedia(initializedScene);
-  }
-
-  // 切换场景媒体
-  void _changeSceneMedia(DateScene scene) {
-    setState(() {
-      _currentMediaUrl = scene.videoUrl ?? scene.imageUrl;
-
-      // 如果有视频，初始化视频播放器
-      if (scene.videoUrl != null) {
-        _initializeVideo(scene.videoUrl!);
-      } else {
-        // 只有图片，释放视频播放器
-        _videoController?.dispose();
-        _videoController = null;
-      }
-    });
-  }
-
-  // 显示歌曲列表
+  // 显示歌曲列表和合成功能
   void _showSongList() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.4,
-        maxChildSize: 0.9,
-        builder: (context, scrollController) => Container(
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.95),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppTheme.shadowOverlay.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return DraggableScrollableSheet(
+            initialChildSize: 0.7,
+            minChildSize: 0.4,
+            maxChildSize: 0.9,
+            expand: false,
+            builder: (context, scrollController) => Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                border: Border.all(color: Colors.white10),
               ),
-              const SizedBox(height: 20),
-              Text(
-                '${widget.nickname} 的歌单',
-                style: const TextStyle(color: AppTheme.titleText, fontSize: 20, fontWeight: FontWeight.bold),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    '${widget.nickname} 的歌单',
+                    style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // 歌曲搜索/合成输入
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _songInputController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: '输入你想听的歌名...',
+                              hintStyle: const TextStyle(color: Colors.white30),
+                              filled: true,
+                              fillColor: Colors.white.withValues(alpha: 0.05),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: _isLearningSong || _songInputController.text.trim().isEmpty
+                              ? null
+                              : () async {
+                                  final songTitle = _songInputController.text.trim();
+                                  setModalState(() => _isLearningSong = true);
+
+                                  // TODO: 接口待实现，目前模拟合成过程
+                                  await Future.delayed(const Duration(seconds: 3));
+
+                                  if (!mounted) return;
+
+                                  final newSong = Song(
+                                    id: 'learned_${DateTime.now().millisecondsSinceEpoch}',
+                                    title: songTitle,
+                                    artist: widget.nickname,
+                                    coverUrl: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=400',
+                                    audioUrl: 'audio/demo.mp3', // 模拟音频
+                                    duration: const Duration(minutes: 3, seconds: 0),
+                                    isUnlocked: true,
+                                  );
+
+                                  setState(() {
+                                    _songs.insert(0, newSong);
+                                    _isLearningSong = false;
+                                  });
+                                  setModalState(() {});
+                                  _songInputController.clear();
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.purpleAccent,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          ),
+                          child: const Text(
+                            '点歌',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  if (_isLearningSong)
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.purpleAccent),
+                          ),
+                          const SizedBox(width: 12),
+                          Text('${widget.nickname} 正在学习中...', style: const TextStyle(color: Colors.purpleAccent)),
+                        ],
+                      ),
+                    ),
+
+                  const SizedBox(height: 16),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '历史已点歌曲',
+                        style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  Expanded(
+                    child: ListView.builder(
+                      controller: scrollController,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _songs.length,
+                      itemBuilder: (context, index) {
+                        final song = _songs[index];
+                        return _buildSongItem(song);
+                      },
+                    ),
+                  ),
+                  if (_currentSong != null) _buildMiniPlayer(),
+                ],
               ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: ListView.builder(
-                  controller: scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _songs.length,
-                  itemBuilder: (context, index) {
-                    final song = _songs[index];
-                    return _buildSongItem(song);
-                  },
-                ),
-              ),
-              if (_currentSong != null) _buildMiniPlayer(),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -975,7 +1288,7 @@ class _DatingPageState extends State<DatingPage> {
                 // Top Bar
                 Positioned(top: 0, left: 0, right: 0, child: _buildTopBar()),
                 // Right Menu (Functional Buttons with Glass Style)
-                Positioned(right: 16, top: 120, bottom: 120, width: 90, child: _buildRightMenu()),
+                Positioned(right: 16, top: 120, bottom: 120, width: 72, child: _buildRightMenu()),
               ],
             ),
           ),
@@ -1010,7 +1323,7 @@ class _DatingPageState extends State<DatingPage> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.black.withValues(alpha: 0.3),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.7), width: 1.5),
               ),
               child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
             ),
@@ -1027,7 +1340,7 @@ class _DatingPageState extends State<DatingPage> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.black.withValues(alpha: 0.3),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.7), width: 1.5),
               ),
               child: const Icon(Icons.menu, color: Colors.white, size: 20),
             ),
@@ -1038,13 +1351,11 @@ class _DatingPageState extends State<DatingPage> {
   }
 
   Widget _buildRightMenu() {
-    // Map existing features to this menu style
-    // Features: Date, Sing, Diary, Gift
     final menuItems = [
-      (icon: Icons.favorite, label: 'Date', color: Colors.pink, onTap: _showSceneSelector),
-      (icon: Icons.music_note, label: 'Sing', color: Colors.purple, onTap: _showSongList),
-      (icon: Icons.book, label: 'Diary', color: Colors.blue, onTap: _openDiary),
-      (icon: Icons.checkroom, label: 'Wardrobe', color: Colors.purpleAccent, onTap: _showWardrobeModal),
+      (icon: Icons.favorite, color: Colors.pink, onTap: _showDatingSelector),
+      (icon: Icons.music_note, color: Colors.purple, onTap: _showSongList),
+      (icon: Icons.book, color: Colors.blue, onTap: _openDiary),
+      (icon: Icons.checkroom, color: Colors.purpleAccent, onTap: _showWardrobeModal),
     ];
 
     return Column(
@@ -1053,26 +1364,17 @@ class _DatingPageState extends State<DatingPage> {
           child: ListView.separated(
             padding: EdgeInsets.zero,
             itemCount: menuItems.length,
-            separatorBuilder: (c, i) => const SizedBox(height: 10),
+            separatorBuilder: (c, i) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final item = menuItems[index];
               return GestureDetector(
                 onTap: item.onTap,
                 child: GlassContainer(
-                  height: 90, // Slightly smaller than Wardrobe's 110 to fit 4 items
-                  borderRadius: BorderRadius.circular(20),
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(item.icon, color: item.color, size: 32),
-                      const SizedBox(height: 4),
-                      Text(
-                        item.label,
-                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
+                  height: 64,
+                  borderRadius: BorderRadius.circular(16),
+                  padding: EdgeInsets.zero,
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 2.0),
+                  child: Center(child: Icon(item.icon, color: item.color, size: 28)),
                 ),
               );
             },
@@ -1083,53 +1385,14 @@ class _DatingPageState extends State<DatingPage> {
   }
 
   Widget _buildMediaDisplay() {
-    // 显示图片（优先使用换装后的图片，否则使用当前场景图片或默认角色图片）
-    final imageUrl = _currentOutfitUrl ?? _currentScene?.imageUrl ?? widget.role.imageUrl;
+    // 优先显示 _currentOutfitUrl (包含生成的约会照片或通过预览应用的图片)
+    final imageUrl = _currentOutfitUrl ?? widget.role.imageUrl;
 
-    // 如果有换装，强制显示图片（换装暂不持支视频）
-    if (_currentOutfitUrl != null) {
-      return Image.network(
-        imageUrl,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            color: Colors.black,
-            child: const Center(child: Icon(Icons.person, size: 100, color: Colors.white54)),
-          );
-        },
-      );
-    }
-
-    // 如果没有换装，则按原逻辑判断视频和场景图片
-    if (_videoController != null && _videoController!.value.isInitialized) {
-      return SizedBox.expand(
-        child: FittedBox(
-          fit: BoxFit.cover,
-          child: SizedBox(
-            width: _videoController!.value.size.width,
-            height: _videoController!.value.size.height,
-            child: VideoPlayer(_videoController!),
-          ),
-        ),
-      );
-    }
-
-    // 如果正在加载视频
-    if (_videoController != null && !_videoController!.value.isInitialized) {
-      return Container(
-        color: Colors.black,
-        child: const Center(child: CircularProgressIndicator(color: Colors.white)),
-      );
-    }
-
-    // 显示图片（使用当前场景的图片或默认图片）
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 500),
       child: Image.network(
         imageUrl,
-        key: ValueKey(imageUrl), // 用于触发 AnimatedSwitcher
+        key: ValueKey(imageUrl),
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,

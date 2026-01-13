@@ -156,45 +156,6 @@ class ApiClient {
       throw Exception('Upload failed: $e');
     }
   }
-
-  Future<Map<String, dynamic>> generateGhostImage(String imageUrl, int horrorLevel) async {
-    final response = await _dio.post(
-      AppConstants.generateGhostImageEndpoint,
-      data: {'image_url': imageUrl, 'horror_level': horrorLevel},
-    );
-
-    final responseData = response.data;
-    final code = responseData['code'];
-
-    if (code == '0') {
-      return responseData['data'];
-    }
-
-    // Handle specific error codes
-    if (code == '900002') {
-      throw InsufficientCreditsException(responseData['msg'] ?? 'Insufficient user credits');
-    }
-
-    throw Exception(responseData['msg'] ?? 'Ghost image generation failed');
-  }
-
-  Future<Map<String, dynamic>> generateGhostVideo(String imageUrl) async {
-    final response = await _dio.post(AppConstants.generateGhostVideoEndpoint, data: {'image_url': imageUrl});
-
-    final responseData = response.data;
-    final code = responseData['code'];
-
-    if (code == '0') {
-      return responseData['data'];
-    }
-
-    // Handle specific error codes
-    if (code == '900002') {
-      throw InsufficientCreditsException(responseData['msg'] ?? 'Insufficient user credits');
-    }
-
-    throw Exception(responseData['msg'] ?? 'Ghost image generation failed');
-  }
 }
 
 class ApiException implements Exception {
