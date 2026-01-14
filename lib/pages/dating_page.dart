@@ -186,9 +186,8 @@ class _DatingPageState extends State<DatingPage> {
     String? tempUserPhotoUrl = _userPhotoUrl;
     bool isGenerating = false;
     final ScrollController modalScrollController = ScrollController(); // 添加滚动控制器
-
-    // Available character images: avatar + wardrobe
-    final List<String> characterImages = [widget.role.imageUrl, ..._predefinedOutfits];
+    List<String> characterImages = [widget.role.imageUrl]; // 从 API 获取的照片列表
+    bool isLoadingOutfits = true;
 
     showModalBottomSheet(
       context: context,
@@ -196,6 +195,26 @@ class _DatingPageState extends State<DatingPage> {
       isScrollControlled: true,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
+          // 加载 outfit 照片列表（仅在第一次时加载）
+          if (isLoadingOutfits && characterImages.length == 1) {
+            _himxApi
+                .getPhotoList(roleId: widget.role.roleId, type: 'outfit')
+                .then((photos) {
+                  if (!mounted) return;
+                  setModalState(() {
+                    characterImages = [widget.role.imageUrl, ...photos.map((p) => p.imageUrl)];
+                    isLoadingOutfits = false;
+                  });
+                })
+                .catchError((e) {
+                  debugPrint('加载 outfit 照片失败: $e');
+                  if (!mounted) return;
+                  setModalState(() {
+                    isLoadingOutfits = false;
+                  });
+                });
+          }
+
           return Container(
             height: MediaQuery.of(context).size.height * 0.9,
             decoration: BoxDecoration(
@@ -927,19 +946,15 @@ class _DatingPageState extends State<DatingPage> {
     Navigator.push(context, MaterialPageRoute(builder: (context) => DiaryPage(role: widget.role)));
   }
 
-  // Predefined outfits for the role (Mock data)
-  final List<String> _predefinedOutfits = [
-    'https://api.dicebear.com/9.x/avataaars/png?seed=outfit1',
-    'https://api.dicebear.com/9.x/avataaars/png?seed=outfit2',
-    'https://api.dicebear.com/9.x/avataaars/png?seed=outfit3',
-    'https://api.dicebear.com/9.x/avataaars/png?seed=outfit4',
-  ];
+  // Outfit photos will be loaded from API
 
-  void _showWardrobeModal() {
+  void _showOutfitModal() {
     String? tempPreviewUrl;
     bool isGenerating = false;
     String mode = 'prompt'; // 'prompt' or 'reference'
     String? selectedReferenceImage;
+    List<String> outfitImages = []; // 从 API 获取的 outfit 照片列表
+    bool isLoadingOutfits = true;
 
     showModalBottomSheet(
       context: context,
@@ -947,6 +962,26 @@ class _DatingPageState extends State<DatingPage> {
       isScrollControlled: true,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
+          // 加载 outfit 照片列表（仅在第一次时加载）
+          if (isLoadingOutfits && outfitImages.isEmpty) {
+            _himxApi
+                .getPhotoList(roleId: widget.role.roleId, type: 'outfit')
+                .then((photos) {
+                  if (!mounted) return;
+                  setModalState(() {
+                    outfitImages = photos.map((p) => p.imageUrl).toList();
+                    isLoadingOutfits = false;
+                  });
+                })
+                .catchError((e) {
+                  debugPrint('加载 outfit 照片失败: $e');
+                  if (!mounted) return;
+                  setModalState(() {
+                    isLoadingOutfits = false;
+                  });
+                });
+          }
+
           return Container(
             height: MediaQuery.of(context).size.height * 0.85,
             decoration: BoxDecoration(
@@ -962,7 +997,7 @@ class _DatingPageState extends State<DatingPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Wardrobe',
+                      'Outfit',
                       style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                     IconButton(
@@ -973,37 +1008,46 @@ class _DatingPageState extends State<DatingPage> {
                 ),
                 const SizedBox(height: 24),
 
-                // 1. Predefined Outfits
+                // 1. Outfit Photos from API
                 const Text(
-                  'Predefined Outfits',
+                  '我的衣柜',
                   style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
                   height: 100,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _predefinedOutfits.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 12),
-                    itemBuilder: (context, index) {
-                      final url = _predefinedOutfits[index];
-                      final isSelected = _currentOutfitUrl == url;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() => _currentOutfitUrl = url);
-                          setModalState(() {});
-                        },
-                        child: Container(
-                          width: 80,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: isSelected ? Colors.purpleAccent : Colors.white10, width: 2),
-                            image: DecorationImage(image: NetworkImage(url), fit: BoxFit.cover),
-                          ),
+                  child: isLoadingOutfits
+                      ? const Center(child: CircularProgressIndicator(color: Colors.purpleAccent, strokeWidth: 2))
+                      : outfitImages.isEmpty
+                      ? const Center(
+                          child: Text('暂无照片', style: TextStyle(color: Colors.white30, fontSize: 14)),
+                        )
+                      : ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: outfitImages.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final url = outfitImages[index];
+                            final isSelected = _currentOutfitUrl == url;
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() => _currentOutfitUrl = url);
+                                setModalState(() {});
+                              },
+                              child: Container(
+                                width: 80,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isSelected ? Colors.purpleAccent : Colors.white10,
+                                    width: 2,
+                                  ),
+                                  image: DecorationImage(image: NetworkImage(url), fit: BoxFit.cover),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
                 ),
                 const SizedBox(height: 32),
 
@@ -1082,34 +1126,98 @@ class _DatingPageState extends State<DatingPage> {
                     ),
                   )
                 else
-                  GestureDetector(
-                    onTap: () {
-                      // Mock Image Picker
-                      setModalState(
-                        () => selectedReferenceImage = 'https://api.dicebear.com/9.x/avataaars/png?seed=ref',
-                      );
-                    },
-                    child: Container(
-                      height: 100,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white12, style: BorderStyle.solid),
-                      ),
-                      child: selectedReferenceImage != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: Image.network(selectedReferenceImage!, fit: BoxFit.cover),
-                            )
-                          : const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.add_photo_alternate, color: Colors.white54, size: 32),
-                                SizedBox(height: 8),
-                                Text('Select Reference Image', style: TextStyle(color: Colors.white30)),
-                              ],
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () async {
+                        debugPrint('📸 点击选择参考图片');
+                        try {
+                          final XFile? image = await _imagePicker.pickImage(
+                            source: ImageSource.gallery,
+                            maxWidth: 1280,
+                            maxHeight: 1280,
+                            imageQuality: 85,
+                          );
+
+                          if (image == null) {
+                            debugPrint('📸 用户取消选择');
+                            return;
+                          }
+
+                          debugPrint('📸 开始上传参考图片');
+                          setModalState(() => selectedReferenceImage = 'uploading');
+
+                          final imageUrl = await _apiClient.uploadImage(File(image.path));
+                          debugPrint('📸 参考图片上传成功: $imageUrl');
+
+                          if (!mounted) return;
+                          setModalState(() => selectedReferenceImage = imageUrl);
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('参考图片上传成功'),
+                              backgroundColor: Colors.green,
+                              duration: Duration(seconds: 2),
                             ),
+                          );
+                        } catch (e) {
+                          debugPrint('📸 上传参考图片失败: $e');
+                          if (!mounted) return;
+                          setModalState(() => selectedReferenceImage = null);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('上传参考图片失败: $e'),
+                              backgroundColor: Colors.red,
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        height: 100,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white12, style: BorderStyle.solid),
+                        ),
+                        child: selectedReferenceImage == 'uploading'
+                            ? const Center(child: CircularProgressIndicator(color: Colors.purpleAccent, strokeWidth: 2))
+                            : selectedReferenceImage != null
+                            ? Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Image.network(
+                                      selectedReferenceImage!,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: GestureDetector(
+                                      onTap: () => setModalState(() => selectedReferenceImage = null),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                                        child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_photo_alternate, color: Colors.white54, size: 32),
+                                  SizedBox(height: 8),
+                                  Text('选择参考图片', style: TextStyle(color: Colors.white30)),
+                                ],
+                              ),
+                      ),
                     ),
                   ),
 
@@ -1117,64 +1225,101 @@ class _DatingPageState extends State<DatingPage> {
 
                 // Generation Preview Area
                 if (tempPreviewUrl != null || isGenerating)
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.white10),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 图片预览区域 - 按9:16比例显示
+                      AspectRatio(
+                        aspectRatio: 9 / 16,
+                        child: Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.black,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: Colors.white10),
+                          ),
+                          child: isGenerating
+                              ? const Center(child: CircularProgressIndicator(color: Colors.purpleAccent))
+                              : ClipRRect(
+                                  borderRadius: BorderRadius.circular(24),
+                                  child: Image.network(tempPreviewUrl!, fit: BoxFit.cover, width: double.infinity),
+                                ),
+                        ),
                       ),
-                      child: isGenerating
-                          ? const Center(child: CircularProgressIndicator(color: Colors.purpleAccent))
-                          : ClipRRect(
-                              borderRadius: BorderRadius.circular(24),
-                              child: Stack(
-                                children: [
-                                  Image.network(
-                                    tempPreviewUrl!,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                  ),
-                                  Positioned(
-                                    bottom: 16,
-                                    left: 16,
-                                    right: 16,
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: ElevatedButton(
-                                            onPressed: () {
-                                              setState(() => _currentOutfitUrl = tempPreviewUrl);
-                                              Navigator.pop(context);
-                                            },
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.purpleAccent,
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                            ),
-                                            child: const Text('Apply', style: TextStyle(color: Colors.white)),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: OutlinedButton(
-                                            onPressed: () => setModalState(() => tempPreviewUrl = null),
-                                            style: OutlinedButton.styleFrom(
-                                              side: const BorderSide(color: Colors.white30),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                            ),
-                                            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
-                                          ),
-                                        ),
-                                      ],
+                      // 按钮区域 - 在图片下方
+                      if (!isGenerating && tempPreviewUrl != null) ...[
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  setState(() => _currentOutfitUrl = tempPreviewUrl);
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('装扮已应用'),
+                                      backgroundColor: Colors.green,
+                                      duration: Duration(seconds: 2),
                                     ),
-                                  ),
-                                ],
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.purpleAccent,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                child: const Text(
+                                  '应用',
+                                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                                ),
                               ),
                             ),
-                    ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () async {
+                                  debugPrint('🎨 点击重新生成按钮');
+                                  setModalState(() {
+                                    isGenerating = true;
+                                    tempPreviewUrl = null;
+                                  });
+                                  try {
+                                    final photo = await _himxApi.generateOutfitPhoto(
+                                      roleId: widget.role.roleId,
+                                      characterImageUrl: widget.role.imageUrl,
+                                      outfitDescription: mode == 'prompt'
+                                          ? _wardrobePromptController.text.trim()
+                                          : null,
+                                      referenceImageUrl: mode == 'reference' ? selectedReferenceImage : null,
+                                    );
+                                    if (!mounted) return;
+                                    setModalState(() {
+                                      isGenerating = false;
+                                      tempPreviewUrl = photo.imageUrl;
+                                    });
+                                  } catch (e) {
+                                    debugPrint('🎨 重新生成失败: $e');
+                                    if (!mounted) return;
+                                    setModalState(() => isGenerating = false);
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('重新生成失败: $e')));
+                                  }
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  side: const BorderSide(color: Colors.white30),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                child: const Text(
+                                  '重新生成',
+                                  style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
                   )
                 else
                   const Spacer(),
@@ -1186,16 +1331,32 @@ class _DatingPageState extends State<DatingPage> {
                     child: ElevatedButton(
                       onPressed:
                           (mode == 'prompt' && _wardrobePromptController.text.isEmpty) ||
-                              (mode == 'reference' && selectedReferenceImage == null)
+                              (mode == 'reference' && selectedReferenceImage == null) ||
+                              selectedReferenceImage == 'uploading'
                           ? null
                           : () async {
+                              debugPrint('🎨 点击生成装扮照片按钮');
                               setModalState(() => isGenerating = true);
-                              await Future.delayed(const Duration(seconds: 2));
-                              setModalState(() {
-                                isGenerating = false;
-                                tempPreviewUrl =
-                                    'https://api.dicebear.com/9.x/avataaars/png?seed=${DateTime.now().millisecondsSinceEpoch}';
-                              });
+                              try {
+                                final photo = await _himxApi.generateOutfitPhoto(
+                                  roleId: widget.role.roleId,
+                                  characterImageUrl: widget.role.imageUrl,
+                                  outfitDescription: mode == 'prompt' ? _wardrobePromptController.text.trim() : null,
+                                  referenceImageUrl: mode == 'reference' ? selectedReferenceImage : null,
+                                  aspectRatio: '9:16',
+                                );
+                                if (!mounted) return;
+                                setModalState(() {
+                                  isGenerating = false;
+                                  tempPreviewUrl = photo.imageUrl;
+                                });
+                                debugPrint('🎨 生成成功: ${photo.imageUrl}');
+                              } catch (e) {
+                                debugPrint('🎨 生成失败: $e');
+                                if (!mounted) return;
+                                setModalState(() => isGenerating = false);
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('生成失败: $e')));
+                              }
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.purpleAccent,
@@ -1203,7 +1364,7 @@ class _DatingPageState extends State<DatingPage> {
                         disabledBackgroundColor: Colors.white10,
                       ),
                       child: const Text(
-                        'Generate Expression',
+                        '生成装扮照片',
                         style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -1355,7 +1516,7 @@ class _DatingPageState extends State<DatingPage> {
       (icon: Icons.favorite, color: Colors.pink, onTap: _showDatingSelector),
       (icon: Icons.music_note, color: Colors.purple, onTap: _showSongList),
       (icon: Icons.book, color: Colors.blue, onTap: _openDiary),
-      (icon: Icons.checkroom, color: Colors.purpleAccent, onTap: _showWardrobeModal),
+      (icon: Icons.checkroom, color: Colors.purpleAccent, onTap: _showOutfitModal),
     ];
 
     return Column(

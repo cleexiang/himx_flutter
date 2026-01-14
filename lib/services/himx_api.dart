@@ -132,13 +132,42 @@ class HimxApi {
     );
   }
 
+  /// 生成装扮照片
+  /// [roleId] 角色ID
+  /// [characterImageUrl] 角色图片URL
+  /// [outfitDescription] 装扮描述（可选）
+  /// [referenceImageUrl] 参考图片URL（可选）
+  /// [aspectRatio] 图片宽高比（默认为"3:4"）
+  /// 返回生成的照片数据
+  Future<HimxPhoto> generateOutfitPhoto({
+    required String roleId,
+    required String characterImageUrl,
+    String? outfitDescription,
+    String? referenceImageUrl,
+    String aspectRatio = '3:4',
+  }) async {
+    return _apiClient.post<HimxPhoto>(
+      path: '/rest/v1/himx/outfit/photo/generate',
+      data: {
+        'role_id': roleId,
+        'character_image_url': characterImageUrl,
+        'outfit_description': outfitDescription,
+        'refence_image_url': referenceImageUrl,
+        'aspect_ratio': aspectRatio,
+      },
+      fromJson: (json) => HimxPhoto.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
   /// 获取相册列表
   /// [roleId] 角色ID
+  /// [type] 照片类型（dating|outfit）
   /// [pageSize] 每页数量（默认20）
   /// [pageNumber] 页码（默认1）
   /// 返回照片列表
   Future<List<HimxPhoto>> getPhotoList({
     required String roleId,
+    String type = 'dating',
     int pageSize = 20,
     int pageNumber = 1,
   }) async {
@@ -146,6 +175,7 @@ class HimxApi {
       path: '/rest/v1/himx/photo/list',
       queryParameters: {
         'role_id': roleId,
+        'type': type,
         'page_size': pageSize,
         'page_number': pageNumber,
       },
