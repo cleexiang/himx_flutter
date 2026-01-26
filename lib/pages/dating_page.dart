@@ -312,7 +312,7 @@ class _DatingPageState extends State<DatingPage> {
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
-                          height: 100,
+                          height: 180,
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
                             itemCount: characterImages.length,
@@ -327,7 +327,8 @@ class _DatingPageState extends State<DatingPage> {
                                   () => tempSelectedCharacterImage = url,
                                 ),
                                 child: Container(
-                                  width: 80,
+                                  width: 100,
+                                  height: 100 * (16 / 9),
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
