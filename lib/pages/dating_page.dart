@@ -11,6 +11,7 @@ import '../theme/starry_theme.dart';
 import '../services/himx_api.dart' as service;
 import '../services/api_client.dart';
 import 'diary_page.dart';
+import 'character_settings_page.dart';
 import 'package:flutter/cupertino.dart';
 import '../widgets/glass_container.dart';
 
@@ -1559,7 +1560,12 @@ class _DatingPageState extends State<DatingPage> {
           // Menu Button
           GestureDetector(
             onTap: () {
-              // TODO: Add menu logic
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CharacterSettingsPage(role: widget.role),
+                ),
+              );
             },
             child: Container(
               width: 40,

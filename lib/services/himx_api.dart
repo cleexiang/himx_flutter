@@ -1,5 +1,6 @@
 import 'api_client.dart';
 import 'package:himx/models/chat_message.dart';
+import 'package:himx/models/community_post.dart';
 import 'package:himx/models/himx_role.dart';
 import 'package:himx/models/himx_user_role.dart';
 import 'package:himx/models/himx_photo.dart';
@@ -193,6 +194,75 @@ class HimxApi {
   Future<void> deletePhoto({required int photoId}) async {
     await _apiClient.delete<Map<String, dynamic>>(
       path: '/rest/v1/himx/photo/$photoId',
+      fromJson: (json) => json as Map<String, dynamic>,
+    );
+  }
+
+  /// 分享内容到社区
+  /// [photoId] 要分享的照片ID
+  /// [roleId] 角色ID
+  /// [contentType] 内容类型（dating|outfit）
+  /// [description] 分享描述（可选）
+  /// [location] 位置信息（可选）
+  Future<CommunityPost> shareToCommunity({
+    required int photoId,
+    required String roleId,
+    required String contentType,
+    String? description,
+    String? location,
+  }) async {
+    return _apiClient.post<CommunityPost>(
+      path: '/rest/v1/himx/community/share',
+      data: {
+        'photo_id': photoId,
+        'role_id': roleId,
+        'content_type': contentType,
+        'description': description,
+        'location': location,
+      },
+      fromJson: (json) => CommunityPost.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// 获取社区时间线
+  /// [pageSize] 每页数量（默认20）
+  /// [pageNumber] 页码（默认1）
+  /// 返回社区时间线数据
+  Future<List<CommunityPost>> getCommunityFeed({
+    int pageSize = 20,
+    int pageNumber = 1,
+  }) async {
+    return _apiClient.get<List<CommunityPost>>(
+      path: '/rest/v1/himx/community/feed',
+      queryParameters: {
+        'page_size': pageSize,
+        'page_number': pageNumber,
+      },
+      fromJson: (json) {
+        final feedData = json as Map<String, dynamic>;
+        final List<dynamic> posts = feedData['posts'] as List<dynamic>? ?? [];
+        return posts
+            .map((item) => CommunityPost.fromJson(item as Map<String, dynamic>))
+            .toList();
+      },
+    );
+  }
+
+  /// 点赞社区帖子
+  /// [postId] 帖子ID
+  Future<void> likeCommunityPost({required int postId}) async {
+    await _apiClient.post<Map<String, dynamic>>(
+      path: '/rest/v1/himx/community/like/$postId',
+      data: {},
+      fromJson: (json) => json as Map<String, dynamic>,
+    );
+  }
+
+  /// 取消点赞社区帖子
+  /// [postId] 帖子ID
+  Future<void> unlikeCommunityPost({required int postId}) async {
+    await _apiClient.delete<Map<String, dynamic>>(
+      path: '/rest/v1/himx/community/like/$postId',
       fromJson: (json) => json as Map<String, dynamic>,
     );
   }
