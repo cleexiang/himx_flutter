@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/starry_theme.dart';
+import '../coins_purchase_page.dart';
 
 /// 个人设置 Tab
 class HomeProfileTab extends StatefulWidget {
@@ -22,6 +23,8 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildUserInfoCard(),
+                const SizedBox(height: 24),
+                _buildCoinsCard(),
                 const SizedBox(height: 24),
                 _buildSettingsSection(),
                 const SizedBox(height: 24),
@@ -131,6 +134,84 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
             icon: const Icon(Icons.edit, color: Colors.white54, size: 20),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCoinsCard() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const CoinsPurchasePage()),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              StarryTheme.accentGold.withValues(alpha: 0.2),
+              const Color(0xFFFFA500).withValues(alpha: 0.2),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '我的积分',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.monetization_on, color: StarryTheme.accentGold, size: 20),
+                    const SizedBox(width: 6),
+                    const Text(
+                      '1,250',
+                      style: TextStyle(
+                        color: StarryTheme.accentGold,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: StarryTheme.accentGold.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                children: [
+                  Text(
+                    '购买',
+                    style: TextStyle(
+                      color: StarryTheme.accentGold,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(width: 4),
+                  Icon(Icons.arrow_forward, color: StarryTheme.accentGold, size: 16),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

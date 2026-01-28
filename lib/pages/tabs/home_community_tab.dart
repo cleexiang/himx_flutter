@@ -310,7 +310,7 @@ class _HomeCommunityTabState extends State<HomeCommunityTab> {
                 child: GestureDetector(
                   onTap: () {
                     if (!_isCurrentPostSharing(post)) {
-                      _performShare(post);
+                      _showShareConfirmDialog(post);
                     }
                   },
                   child: Container(
@@ -617,6 +617,43 @@ class _HomeCommunityTabState extends State<HomeCommunityTab> {
 
   bool _isCurrentPostSharing(CommunityPost post) {
     return _isSharing && _sharingPostId == post.id;
+  }
+
+  void _showShareConfirmDialog(CommunityPost post) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A2A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          '确认分享',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          '确定要将这张照片分享到社区吗？',
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              '取消',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _performShare(post);
+            },
+            child: const Text(
+              '确认',
+              style: TextStyle(color: StarryTheme.accentPink, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _performShare(CommunityPost post) async {

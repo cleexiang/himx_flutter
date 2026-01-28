@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:himx/services/auth_service.dart';
 import 'package:video_player/video_player.dart';
 import '../../models/himx_role.dart';
 import '../../theme/starry_theme.dart';
 import '../../services/himx_api.dart';
 import '../dating_page.dart';
+import '../coins_purchase_page.dart';
+import '../pro_subscription_page.dart';
 
 /// 推荐角色 Tab
 class HomeDiscoverTab extends StatefulWidget {
@@ -71,41 +74,57 @@ class _HomeDiscoverTabState extends State<HomeDiscoverTab> {
           Row(
             children: [
               // PRO 按钮
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Color(0xFFFFD700), Color(0xFFFFA500)]),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.star, color: Colors.black, size: 16),
-                    SizedBox(width: 4),
-                    Text(
-                      'PRO',
-                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12),
-                    ),
-                  ],
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ProSubscriptionPage()),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [Color(0xFFFFD700), Color(0xFFFFA500)]),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.star, color: Colors.black, size: 16),
+                      SizedBox(width: 4),
+                      Text(
+                        'PRO',
+                        style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
               // 积分
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.diamond, color: Colors.cyanAccent, size: 16),
-                    SizedBox(width: 4),
-                    Text(
-                      '1,250',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                    ),
-                  ],
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const CoinsPurchasePage()),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.diamond, color: Colors.cyanAccent, size: 16),
+                      SizedBox(width: 4),
+                      Text(
+                        AuthService().currentUser?.credits.toString() ?? "0",
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

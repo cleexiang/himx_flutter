@@ -40,7 +40,7 @@ class HttpClient {
       BaseOptions(
         // baseUrl: 'https://prod.mobileai.app',
         // baseUrl: 'https://test.mobileai.app',
-        baseUrl: 'http://127.0.0.1:8000',
+        baseUrl: 'http://192.168.101.68:8000',
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 45),
         headers: {'Content-Type': 'application/json'},
