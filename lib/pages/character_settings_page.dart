@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/himx_role.dart';
-import 'dating_page.dart';
 import '../theme/starry_theme.dart';
 import '../services/himx_api.dart';
+import '../services/auth_service.dart';
 
 class CharacterSettingsPage extends StatefulWidget {
   final HimxRole role;
@@ -16,52 +16,38 @@ class CharacterSettingsPage extends StatefulWidget {
 class _CharacterSettingsPageState extends State<CharacterSettingsPage> {
   final _nicknameController = TextEditingController();
   final _personalityController = TextEditingController();
-  final _userNicknameController = TextEditingController();
   bool _isSubmitting = false;
 
   @override
   void dispose() {
     _nicknameController.dispose();
     _personalityController.dispose();
-    _userNicknameController.dispose();
     super.dispose();
   }
 
-  Future<void> _startDating() async {
-    if (_nicknameController.text.isEmpty ||
-        _personalityController.text.isEmpty ||
-        _userNicknameController.text.isEmpty) {
+  Future<void> _saveRoleSettings() async {
+    if (_nicknameController.text.trim().isEmpty || _personalityController.text.trim().isEmpty) {
       _showErrorDialog('Missing Information', 'Please fill in all fields');
       return;
     }
 
-    final nickname = _nicknameController.text;
-    final personality = _personalityController.text;
-    final userNickname = _userNicknameController.text;
+    final nickname = _nicknameController.text.trim();
+    final personality = _personalityController.text.trim();
+    final userNickname = AuthService().currentUser?.nickName ?? 'You';
 
     setState(() => _isSubmitting = true);
     try {
-      await HimxApi().startDating(
+      await HimxApi().saveRoleSettings(
         roleId: widget.role.roleId,
         nickname: nickname,
         personality: personality,
         userNickname: userNickname,
       );
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => DatingPage(
-            role: widget.role,
-            nickname: nickname,
-            personality: personality,
-            userNickname: userNickname,
-          ),
-        ),
-      );
+      Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      _showErrorDialog('Start Dating Failed', '$e');
+      _showErrorDialog('Save Failed', '$e');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -125,11 +111,7 @@ class _CharacterSettingsPageState extends State<CharacterSettingsPage> {
           const Expanded(
             child: Text(
               'Character Settings',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
           ),
@@ -152,11 +134,7 @@ class _CharacterSettingsPageState extends State<CharacterSettingsPage> {
         children: [
           Text(
             'Customize Your Experience',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 20),
           _buildTextField(
@@ -172,13 +150,6 @@ class _CharacterSettingsPageState extends State<CharacterSettingsPage> {
             hint: 'e.g., Gentle, Charismatic, Humorous',
             icon: Icons.emoji_emotions,
             maxLines: 3,
-          ),
-          const SizedBox(height: 20),
-          _buildTextField(
-            controller: _userNicknameController,
-            label: 'His Pet Name for You',
-            hint: 'e.g., Sweetie, Princess, Love',
-            icon: Icons.person_outline,
           ),
         ],
       ),
@@ -201,11 +172,7 @@ class _CharacterSettingsPageState extends State<CharacterSettingsPage> {
             const SizedBox(width: 8),
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.white,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white),
             ),
           ],
         ),
@@ -239,44 +206,29 @@ class _CharacterSettingsPageState extends State<CharacterSettingsPage> {
       width: double.infinity,
       child: Container(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [StarryTheme.accentPink, Color(0xFF9747FF)],
-          ),
+          gradient: const LinearGradient(colors: [StarryTheme.accentPink, Color(0xFF9747FF)]),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            BoxShadow(
-              color: StarryTheme.accentPink.withValues(alpha: 0.4),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
+            BoxShadow(color: StarryTheme.accentPink.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 8)),
           ],
         ),
         child: ElevatedButton(
-          onPressed: _isSubmitting ? null : _startDating,
+          onPressed: _isSubmitting ? null : _saveRoleSettings,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           child: _isSubmitting
               ? const SizedBox(
                   height: 20,
                   width: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 )
               : const Text(
                   'Save',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
         ),
       ),

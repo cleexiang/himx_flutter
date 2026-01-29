@@ -158,7 +158,7 @@ class _CoinsPurchasePageState extends State<CoinsPurchasePage> {
                         child: Text(
                           _errorMessage,
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14),
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -179,19 +179,26 @@ class _CoinsPurchasePageState extends State<CoinsPurchasePage> {
                     ],
                   ),
                 )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildProCard(),
-                      const SizedBox(height: 16),
-                      _buildPackagesGrid(),
-                      const SizedBox(height: 16),
-                      _buildContinueButton(),
-                      const SizedBox(height: 16),
-                    ],
-                  ),
+              : Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildProCard(),
+                            const SizedBox(height: 16),
+                            _buildPackagesGrid(),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: _buildContinueButton(),
+                    ),
+                  ],
                 ),
     );
   }
@@ -203,14 +210,11 @@ class _CoinsPurchasePageState extends State<CoinsPurchasePage> {
         borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(
           colors: [
-            StarryTheme.purpleCardBg.withValues(alpha: 0.8),
-            StarryTheme.purpleCardBg.withValues(alpha: 0.5),
+            Colors.white.withValues(alpha: 0.08),
+            Colors.white.withValues(alpha: 0.04),
           ],
         ),
-        border: Border.all(
-          color: StarryTheme.accentPink,
-          width: 1.5,
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
       ),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -306,7 +310,7 @@ class _CoinsPurchasePageState extends State<CoinsPurchasePage> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.75,
+        mainAxisExtent: 220,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
@@ -326,19 +330,19 @@ class _CoinsPurchasePageState extends State<CoinsPurchasePage> {
             gradient: package.isPopular
                 ? LinearGradient(
                     colors: [
-                      StarryTheme.purpleCardBg.withValues(alpha: 0.9),
-                      StarryTheme.purpleCardBg.withValues(alpha: 0.6),
+                      StarryTheme.accentGold.withValues(alpha: 0.15),
+                      StarryTheme.accentGold.withValues(alpha: 0.08),
                     ],
                   )
                 : LinearGradient(
                     colors: [
-                      StarryTheme.purpleCardBg.withValues(alpha: 0.6),
-                      StarryTheme.purpleCardBg.withValues(alpha: 0.3),
+                      Colors.white.withValues(alpha: 0.08),
+                      Colors.white.withValues(alpha: 0.04),
                     ],
                   ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: package.isPopular ? StarryTheme.accentPink : StarryTheme.accentCyan.withValues(alpha: 0.3),
+              color: package.isPopular ? StarryTheme.accentGold.withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.15),
               width: package.isPopular ? 2 : 1,
             ),
           ),
@@ -435,7 +439,7 @@ class _CoinsPurchasePageState extends State<CoinsPurchasePage> {
               child: Container(
                 padding: const EdgeInsets.all(1),
                 decoration: const BoxDecoration(
-                  color: Colors.black,
+                  color: StarryTheme.darkBackground,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.monetization_on, color: StarryTheme.accentGold, size: 20),
@@ -458,7 +462,7 @@ class _CoinsPurchasePageState extends State<CoinsPurchasePage> {
               child: Container(
                 padding: const EdgeInsets.all(1),
                 decoration: const BoxDecoration(
-                  color: Colors.black,
+                  color: StarryTheme.darkBackground,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.monetization_on, color: StarryTheme.accentGold, size: 20),
@@ -470,7 +474,7 @@ class _CoinsPurchasePageState extends State<CoinsPurchasePage> {
               child: Container(
                 padding: const EdgeInsets.all(1),
                 decoration: const BoxDecoration(
-                  color: Colors.black,
+                  color: StarryTheme.darkBackground,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.monetization_on, color: StarryTheme.accentGold, size: 16),
@@ -492,8 +496,10 @@ class _CoinsPurchasePageState extends State<CoinsPurchasePage> {
           backgroundColor: Colors.white.withValues(alpha: 0.1),
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          side: const BorderSide(color: StarryTheme.accentCyan, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+          ),
         ),
         child: const Text(
           'Continue',

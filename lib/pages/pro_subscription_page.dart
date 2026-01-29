@@ -26,11 +26,7 @@ class _ProSubscriptionPageState extends State<ProSubscriptionPage> {
       body: Stack(
         children: [
           // 背景
-          Container(
-            decoration: const BoxDecoration(
-              gradient: StarryTheme.mainBackgroundGradient,
-            ),
-          ),
+          Container(decoration: const BoxDecoration(gradient: StarryTheme.mainBackgroundGradient)),
           // 内容
           SafeArea(
             child: SingleChildScrollView(
@@ -81,23 +77,13 @@ class _ProSubscriptionPageState extends State<ProSubscriptionPage> {
         ),
         const Text(
           'Get Pro',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         GestureDetector(
           onTap: () {
             // 处理恢复购买
           },
-          child: const Text(
-            'Restore',
-            style: TextStyle(
-              color: Color(0xFF999999),
-              fontSize: 14,
-            ),
-          ),
+          child: const Text('Restore', style: TextStyle(color: Color(0xFF999999), fontSize: 14)),
         ),
       ],
     );
@@ -110,21 +96,13 @@ class _ProSubscriptionPageState extends State<ProSubscriptionPage> {
         const Text(
           'Unleash the Full Power of AI',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-            height: 1.3,
-          ),
+          style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, height: 1.3),
         ),
         const SizedBox(height: 16),
         const Text(
           'Unlimited access all',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Color(0xFFCCCCCC),
-            fontSize: 16,
-          ),
+          style: TextStyle(color: Color(0xFFCCCCCC), fontSize: 16),
         ),
       ],
     );
@@ -136,46 +114,27 @@ class _ProSubscriptionPageState extends State<ProSubscriptionPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            StarryTheme.accentGold.withValues(alpha: 0.1),
-            StarryTheme.accentGold.withValues(alpha: 0.05),
-          ],
+          colors: [StarryTheme.accentGold.withValues(alpha: 0.1), StarryTheme.accentGold.withValues(alpha: 0.05)],
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: StarryTheme.accentGold.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: StarryTheme.accentGold.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.star,
-                color: StarryTheme.accentGold,
-                size: 20,
-              ),
+              const Icon(Icons.star, color: StarryTheme.accentGold, size: 20),
               const SizedBox(width: 8),
               const Text(
                 '9 Pro benefits',
-                style: TextStyle(
-                  color: StarryTheme.accentGold,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: StarryTheme.accentGold, fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ],
           ),
           Row(
             children: [
-              const Text(
-                'Free',
-                style: TextStyle(
-                  color: Color(0xFF999999),
-                  fontSize: 14,
-                ),
-              ),
+              const Text('Free', style: TextStyle(color: Color(0xFF999999), fontSize: 14)),
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -186,11 +145,7 @@ class _ProSubscriptionPageState extends State<ProSubscriptionPage> {
                 ),
                 child: const Text(
                   'Pro',
-                  style: TextStyle(
-                    color: StarryTheme.accentGold,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: StarryTheme.accentGold, fontSize: 12, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -222,10 +177,7 @@ class _ProSubscriptionPageState extends State<ProSubscriptionPage> {
                     children: [
                       TextSpan(
                         text: feature.$1,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
+                        style: const TextStyle(color: Colors.white, fontSize: 16),
                       ),
                       TextSpan(
                         text: feature.$2,
@@ -239,11 +191,7 @@ class _ProSubscriptionPageState extends State<ProSubscriptionPage> {
                   ),
                 ),
               ),
-              const Icon(
-                Icons.check_circle,
-                color: StarryTheme.accentGold,
-                size: 24,
-              ),
+              const Icon(Icons.check_circle, color: StarryTheme.accentGold, size: 24),
             ],
           ),
         );
@@ -263,7 +211,6 @@ class _ProSubscriptionPageState extends State<ProSubscriptionPage> {
           weeklyPrice: '\$3.50/wk',
           savings: null,
           isSelected: _selectedPlan == SubscriptionPlan.monthly,
-          isBestValue: false,
         ),
         const SizedBox(height: 12),
         _buildSubscriptionCard(
@@ -274,7 +221,6 @@ class _ProSubscriptionPageState extends State<ProSubscriptionPage> {
           weeklyPrice: '\$1.34/wk',
           savings: 'Save\n87%',
           isSelected: _selectedPlan == SubscriptionPlan.yearly,
-          isBestValue: true,
         ),
       ],
     );
@@ -289,7 +235,6 @@ class _ProSubscriptionPageState extends State<ProSubscriptionPage> {
     required String weeklyPrice,
     String? savings,
     required bool isSelected,
-    required bool isBestValue,
   }) {
     return GestureDetector(
       onTap: () {
@@ -306,17 +251,10 @@ class _ProSubscriptionPageState extends State<ProSubscriptionPage> {
                     StarryTheme.accentCyan.withValues(alpha: 0.1),
                   ],
                 )
-              : LinearGradient(
-                  colors: [
-                    Colors.white.withValues(alpha: 0.05),
-                    Colors.white.withValues(alpha: 0.02),
-                  ],
-                ),
+              : LinearGradient(colors: [Colors.white.withValues(alpha: 0.05), Colors.white.withValues(alpha: 0.02)]),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected
-                ? StarryTheme.accentPink.withValues(alpha: 0.5)
-                : Colors.white.withValues(alpha: 0.1),
+            color: isSelected ? StarryTheme.accentPink.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.1),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -333,20 +271,10 @@ class _ProSubscriptionPageState extends State<ProSubscriptionPage> {
                     children: [
                       Text(
                         duration,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        weeklyPrice,
-                        style: const TextStyle(
-                          color: Color(0xFF999999),
-                          fontSize: 12,
-                        ),
-                      ),
+                      Text(weeklyPrice, style: const TextStyle(color: Color(0xFF999999), fontSize: 12)),
                     ],
                   ),
                   // 右侧：价格
@@ -358,48 +286,22 @@ class _ProSubscriptionPageState extends State<ProSubscriptionPage> {
                           children: [
                             TextSpan(
                               text: price,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             TextSpan(
                               text: period,
-                              style: const TextStyle(
-                                color: Color(0xFF999999),
-                                fontSize: 14,
-                              ),
+                              style: const TextStyle(color: Color(0xFF999999), fontSize: 14),
                             ),
                           ],
                         ),
                       ),
                     ],
                   ),
-                  // 节省标签
-                  if (savings != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: StarryTheme.accentGold,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        savings,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          height: 1.3,
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
-            // Best Value 标签
-            if (isBestValue)
+            // 折扣标签（原 isBestValue 位置）
+            if (savings != null)
               Positioned(
                 top: -8,
                 left: 16,
@@ -408,18 +310,17 @@ class _ProSubscriptionPageState extends State<ProSubscriptionPage> {
                   decoration: BoxDecoration(
                     color: StarryTheme.accentGold,
                     borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                      color: StarryTheme.accentGold,
-                      width: 1,
-                    ),
+                    border: Border.all(color: StarryTheme.accentGold, width: 1),
                   ),
-                  child: const Text(
-                    'BEST VALUE',
-                    style: TextStyle(
+                  child: Text(
+                    savings,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
                       color: Colors.black,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
+                      height: 1.2,
                     ),
                   ),
                 ),
@@ -442,18 +343,12 @@ class _ProSubscriptionPageState extends State<ProSubscriptionPage> {
           backgroundColor: StarryTheme.accentGold,
           foregroundColor: Colors.black,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
           elevation: 0,
         ),
         child: const Text(
           'Continue',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -464,11 +359,7 @@ class _ProSubscriptionPageState extends State<ProSubscriptionPage> {
     return Text(
       'Subscription payments will be charged to your Apple iTunes Store account at confirmation of your purchase and upon commencement of each renewal term. You can cancel your subscription.',
       textAlign: TextAlign.center,
-      style: TextStyle(
-        color: Colors.white.withValues(alpha: 0.5),
-        fontSize: 12,
-        height: 1.5,
-      ),
+      style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12, height: 1.5),
     );
   }
 }

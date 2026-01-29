@@ -10,7 +10,8 @@
       "mcp__replicate__create_models_predictions",
       "mcp__replicate__get_predictions",
       "Bash(flutter --version:*)",
-      "Bash(python -m py_compile:*)"
+      "Bash(python -m py_compile:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nrefactor: consolidate API services into unified HimxApi layer\n\n- Consolidate all business logic methods from UserApi into HimxApi\n- Move business-related methods from ApiClient to HimxApi:\n  - Authentication: loginWithDevice\\(\\), loginWithApple\\(\\)\n  - User profile: getUserInfo\\(\\), updateNickname\\(\\), logout\\(\\)\n  - Subscription: checkRevenuecatStatus\\(\\)\n  - File upload: uploadImage\\(\\)\n- Refactor ApiClient to pure HTTP communication layer with generic methods only\n- Remove redundant UserApi class \\(deleted\\)\n- Update dating_page.dart to use HimxApi for image uploads\n- Update home_profile_tab.dart to use HimxApi for user operations\n- Reduce ApiClient code by 58% \\(180 → 75 lines\\)\n- Clear separation of concerns: ApiClient = HTTP layer, HimxApi = Business layer\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")"
     ],
     "deny": [],
     "ask": [],

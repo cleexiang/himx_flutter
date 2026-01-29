@@ -40,6 +40,7 @@ class HimxApi {
   }
 
   /// Start Dating：建立用户-角色关系并保存设置
+  /// 仅在首次建立关系时使用，会创建firstMeet日记
   Future<void> startDating({
     required String roleId,
     required String nickname,
@@ -55,6 +56,27 @@ class HimxApi {
         'nickname': nickname,
         'personality': personality,
         'userNickname': userNickname,
+      },
+      fromJson: (json) => json as Map<String, dynamic>,
+    );
+  }
+
+  /// 保存/更新角色设置
+  /// 仅保存用户的自定义设置，不建立新的用户-角色关系
+  /// 如果用户还没有与该角色建立关系，则创建一条记录（不创建日记）
+  Future<void> saveRoleSettings({
+    required String roleId,
+    required String nickname,
+    required String personality,
+    required String userNickname,
+  }) async {
+    await _apiClient.put<Map<String, dynamic>>(
+      path: '/rest/v1/himx/roles/settings',
+      data: {
+        'role_id': roleId,
+        'nickname': nickname,
+        'personality': personality,
+        'user_nickname': userNickname,
       },
       fromJson: (json) => json as Map<String, dynamic>,
     );
