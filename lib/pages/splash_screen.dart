@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:himx/pages/home_page.dart';
 import 'package:himx/pages/login_screen.dart';
 import 'package:himx/services/auth_service.dart';
+import 'package:himx/services/himx_api.dart';
 import 'package:himx/theme/app_theme.dart';
 
 /// 启动页 - 检查登录状态并导航
@@ -18,6 +19,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   late Animation<double> _scaleAnimation;
 
   final AuthService _authService = AuthService();
+  final HimxApi _himxApi = HimxApi();
 
   @override
   void initState() {
@@ -59,8 +61,21 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     // 根据登录状态导航
     if (_authService.isLoggedIn) {
-      // 已登录 -> 进入主页
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
+      // 已登录 -> 先获取最新用户信息，再进入主页
+      try {
+        final userInfo = await _himxApi.getUserInfo();
+        // 更新本地用户信息
+        await _authService.updateUser(userInfo);
+
+        if (!mounted) return;
+        // 进入主页
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
+      } catch (e) {
+        debugPrint('Failed to fetch user info: $e');
+        if (!mounted) return;
+        // 获取用户信息失败，返回登录页
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
+      }
     } else {
       // 未登录 -> 进入登录页
       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
