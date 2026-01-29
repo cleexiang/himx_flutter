@@ -9,7 +9,6 @@ import '../models/song.dart';
 import '../theme/app_theme.dart';
 import '../theme/starry_theme.dart';
 import '../services/himx_api.dart' as service;
-import '../services/api_client.dart';
 import 'diary_page.dart';
 import 'character_settings_page.dart';
 import 'package:flutter/cupertino.dart';
@@ -36,7 +35,6 @@ class DatingPage extends StatefulWidget {
 class _DatingPageState extends State<DatingPage> {
   VideoPlayerController? _videoController;
   final service.HimxApi _himxApi = service.HimxApi();
-  final ApiClient _apiClient = ApiClient();
   final ImagePicker _imagePicker = ImagePicker();
   final TextEditingController _messageController = TextEditingController();
   final List<ChatMessage> _messages = [];
@@ -385,7 +383,7 @@ class _DatingPageState extends State<DatingPage> {
                                 );
 
                                 // 上传照片到服务器
-                                final imageUrl = await _apiClient.uploadImage(
+                                final imageUrl = await _himxApi.uploadImage(
                                   File(image.path),
                                 );
                                 debugPrint('📸 上传成功: $imageUrl');

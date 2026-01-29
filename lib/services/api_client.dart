@@ -1,17 +1,9 @@
-import 'dart:io';
-
-import 'package:flutter/material.dart';
-import 'package:himx/models/user_model.dart';
-import 'package:himx/services/auth_service.dart';
-import 'package:himx/utils/constants.dart';
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'api_response.dart';
 import 'http_client.dart';
 
 class ApiClient {
   final Dio _dio = HttpClient().dio;
-  String? _token;
 
   // Public getter for Dio instance (needed for SSE connections)
   Dio get dio => _dio;
@@ -76,85 +68,6 @@ class ApiClient {
       return ApiException(error.response?.statusCode ?? -1, error.message ?? 'Network error');
     }
     return ApiException(-1, error.toString());
-  }
-
-  Future<UserInfo> loginWithDevice() async {
-    try {
-      final response = await post(path: AppConstants.loginEndpoint, fromJson: (json) => UserInfo.fromJson(json));
-
-      if (response.token != null) {
-        await AuthService().saveUser(response, response.token!);
-      }
-      return response;
-    } catch (e) {
-      throw Exception('Login failed: $e');
-    }
-  }
-
-  /// Apple 登录
-  Future<UserInfo> loginWithApple({required String user, required String fullName, required String email}) async {
-    try {
-      final response = await post(
-        path: AppConstants.loginWithAppleEndpoint,
-        data: {'user': user, 'fullName': fullName, 'email': email},
-        fromJson: (json) => UserInfo.fromJson(json),
-      );
-
-      if (response.token != null) {
-        await AuthService().saveUser(response, response.token!);
-      }
-      return response;
-    } catch (e) {
-      debugPrint(e.toString());
-      throw Exception('Apple login failed: $e');
-    }
-  }
-
-  Future<UserInfo> getUserInfo() async {
-    try {
-      final response = await get<UserInfo>(
-        path: AppConstants.userInfoEndpoint,
-        fromJson: (json) => UserInfo.fromJson(json),
-      );
-      return response;
-    } catch (e) {
-      throw Exception('Failed to get user info: $e');
-    }
-  }
-
-  Future<UserInfo> checkRevenuecatStatus() async {
-    try {
-      final response = await post<UserInfo>(
-        path: AppConstants.checkRevenuecatStatusEndpoint,
-        fromJson: (json) => UserInfo.fromJson(json),
-      );
-      return response;
-    } catch (e) {
-      throw Exception('Failed to check revenuecat status: $e');
-    }
-  }
-
-  Future<String> uploadImage(File imageFile) async {
-    try {
-      String fileName = imageFile.path.split('/').last;
-      FormData formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(
-          imageFile.path,
-          filename: fileName,
-          contentType: DioMediaType.parse('image/jpeg'),
-        ),
-      });
-
-      final response = await _dio.post(AppConstants.uploadImageEndpoint, data: formData);
-
-      if (response.data['code'] == '0') {
-        return response.data['data']['url'];
-      } else {
-        throw Exception(response.data['msg'] ?? 'Upload failed');
-      }
-    } catch (e) {
-      throw Exception('Upload failed: $e');
-    }
   }
 }
 

@@ -1,9 +1,14 @@
+import 'dart:io';
 import 'api_client.dart';
 import 'package:himx/models/chat_message.dart';
 import 'package:himx/models/community_post.dart';
 import 'package:himx/models/himx_role.dart';
 import 'package:himx/models/himx_user_role.dart';
 import 'package:himx/models/himx_photo.dart';
+import 'package:himx/models/user_model.dart';
+import 'auth_service.dart';
+import 'package:himx/utils/constants.dart';
+import 'package:dio/dio.dart';
 
 class HimxApi {
   final ApiClient _apiClient = ApiClient();
@@ -265,5 +270,135 @@ class HimxApi {
       path: '/rest/v1/himx/community/like/$postId',
       fromJson: (json) => json as Map<String, dynamic>,
     );
+  }
+
+  // =====================================================
+  // 认证和账户相关接口
+  // =====================================================
+
+  /// 设备登录
+  /// 返回用户信息和token
+  Future<UserInfo> loginWithDevice() async {
+    try {
+      final response = await _apiClient.post<UserInfo>(
+        path: AppConstants.loginEndpoint,
+        fromJson: (json) => UserInfo.fromJson(json),
+      );
+
+      if (response.token != null) {
+        await AuthService().saveUser(response, response.token!);
+      }
+      return response;
+    } catch (e) {
+      throw Exception('Login failed: $e');
+    }
+  }
+
+  /// Apple 登录
+  /// [user] Apple用户ID
+  /// [fullName] 用户全名
+  /// [email] 用户邮箱
+  /// 返回用户信息和token
+  Future<UserInfo> loginWithApple({
+    required String user,
+    required String fullName,
+    required String email,
+  }) async {
+    try {
+      final response = await _apiClient.post<UserInfo>(
+        path: AppConstants.loginWithAppleEndpoint,
+        data: {'user': user, 'fullName': fullName, 'email': email},
+        fromJson: (json) => UserInfo.fromJson(json),
+      );
+
+      if (response.token != null) {
+        await AuthService().saveUser(response, response.token!);
+      }
+      return response;
+    } catch (e) {
+      throw Exception('Apple login failed: $e');
+    }
+  }
+
+  /// 获取用户信息
+  /// 返回当前登录用户的详细信息
+  Future<UserInfo> getUserInfo() async {
+    try {
+      final response = await _apiClient.get<UserInfo>(
+        path: AppConstants.userInfoEndpoint,
+        fromJson: (json) => UserInfo.fromJson(json),
+      );
+      return response;
+    } catch (e) {
+      throw Exception('Failed to get user info: $e');
+    }
+  }
+
+  /// 更新用户昵称
+  /// [nickName] 新昵称
+  /// 返回更新后的用户信息
+  Future<UserInfo> updateNickname(String nickName) async {
+    return _apiClient.put<UserInfo>(
+      path: '/rest/v1/user/profile',
+      data: {'nick_name': nickName},
+      fromJson: (json) => UserInfo.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  /// 登出
+  /// 调用后端登出接口清理会话
+  Future<void> logout() async {
+    await _apiClient.post<Map<String, dynamic>>(
+      path: '/rest/v1/user/logout',
+      data: {},
+      fromJson: (json) => json as Map<String, dynamic>,
+    );
+  }
+
+  /// 检查 RevenueCat 订阅状态
+  /// 返回更新后的用户信息
+  Future<UserInfo> checkRevenuecatStatus() async {
+    try {
+      final response = await _apiClient.post<UserInfo>(
+        path: AppConstants.checkRevenuecatStatusEndpoint,
+        fromJson: (json) => UserInfo.fromJson(json),
+      );
+      return response;
+    } catch (e) {
+      throw Exception('Failed to check revenuecat status: $e');
+    }
+  }
+
+  // =====================================================
+  // 文件上传接口
+  // =====================================================
+
+  /// 上传图片
+  /// [imageFile] 要上传的图片文件
+  /// 返回上传后的图片URL
+  Future<String> uploadImage(File imageFile) async {
+    try {
+      String fileName = imageFile.path.split('/').last;
+      FormData formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          imageFile.path,
+          filename: fileName,
+          contentType: DioMediaType.parse('image/jpeg'),
+        ),
+      });
+
+      final response = await _apiClient.dio.post(
+        AppConstants.uploadImageEndpoint,
+        data: formData,
+      );
+
+      if (response.data['code'] == '0') {
+        return response.data['data']['url'];
+      } else {
+        throw Exception(response.data['msg'] ?? 'Upload failed');
+      }
+    } catch (e) {
+      throw Exception('Upload failed: $e');
+    }
   }
 }

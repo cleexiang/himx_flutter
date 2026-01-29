@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:himx/services/auth_service.dart';
+import 'package:himx/services/himx_api.dart';
 import '../../theme/starry_theme.dart';
 import '../coins_purchase_page.dart';
 
@@ -11,6 +14,9 @@ class HomeProfileTab extends StatefulWidget {
 }
 
 class _HomeProfileTabState extends State<HomeProfileTab> {
+  final HimxApi _himxApi = HimxApi();
+  bool _isUpdating = false;
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -48,18 +54,12 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
         children: [
           const Text(
             'Settings',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-              ),
+              gradient: const LinearGradient(colors: [Color(0xFFFFD700), Color(0xFFFFA500)]),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Row(
@@ -83,10 +83,7 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            StarryTheme.accentPink.withValues(alpha: 0.2),
-            const Color(0xFF9747FF).withValues(alpha: 0.2),
-          ],
+          colors: [StarryTheme.accentPink.withValues(alpha: 0.2), const Color(0xFF9747FF).withValues(alpha: 0.2)],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white12),
@@ -98,9 +95,7 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
             height: 60,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [StarryTheme.accentPink, Color(0xFF9747FF)],
-              ),
+              gradient: const LinearGradient(colors: [StarryTheme.accentPink, Color(0xFF9747FF)]),
               border: Border.all(color: Colors.white24, width: 2),
             ),
             child: const Icon(Icons.person, color: Colors.white, size: 32),
@@ -111,20 +106,15 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  '用户昵称',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  '我的昵称',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'user@example.com',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 14,
-                  ),
+                  AuthService().currentUser?.nickName ?? "未设置昵称",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14),
                 ),
               ],
             ),
@@ -141,19 +131,13 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
   Widget _buildCoinsCard() {
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const CoinsPurchasePage()),
-        );
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const CoinsPurchasePage()));
       },
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              StarryTheme.accentGold.withValues(alpha: 0.2),
-              const Color(0xFFFFA500).withValues(alpha: 0.2),
-            ],
+            colors: [StarryTheme.accentGold.withValues(alpha: 0.2), const Color(0xFFFFA500).withValues(alpha: 0.2)],
           ),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.white12),
@@ -166,24 +150,16 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
               children: [
                 const Text(
                   '我的积分',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
                     const Icon(Icons.monetization_on, color: StarryTheme.accentGold, size: 20),
                     const SizedBox(width: 6),
-                    const Text(
-                      '1,250',
-                      style: TextStyle(
-                        color: StarryTheme.accentGold,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Text(
+                      '${AuthService().currentUser?.credits ?? 0}',
+                      style: const TextStyle(color: StarryTheme.accentGold, fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -199,11 +175,7 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
                 children: [
                   Text(
                     '购买',
-                    style: TextStyle(
-                      color: StarryTheme.accentGold,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: StarryTheme.accentGold, fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   SizedBox(width: 4),
                   Icon(Icons.arrow_forward, color: StarryTheme.accentGold, size: 16),
@@ -222,11 +194,7 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
       children: [
         Text(
           '设置',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.6),
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 12),
         Container(
@@ -237,24 +205,11 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
           ),
           child: Column(
             children: [
-              _buildSettingItem(
-                icon: Icons.person_outline,
-                title: '修改昵称',
-                onTap: _showEditNicknameDialog,
-              ),
+              _buildSettingItem(icon: Icons.person_outline, title: '修改昵称', onTap: _showEditNicknameDialog),
               _buildDivider(),
-              _buildSettingItem(
-                icon: Icons.notifications_outlined,
-                title: '通知设置',
-                onTap: () {},
-              ),
+              _buildSettingItem(icon: Icons.notifications_outlined, title: '通知设置', onTap: () {}),
               _buildDivider(),
-              _buildSettingItem(
-                icon: Icons.language,
-                title: '语言',
-                trailing: '简体中文',
-                onTap: () {},
-              ),
+              _buildSettingItem(icon: Icons.language, title: '语言', trailing: '简体中文', onTap: () {}),
             ],
           ),
         ),
@@ -268,11 +223,7 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
       children: [
         Text(
           '关于',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.6),
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 12),
         Container(
@@ -295,12 +246,7 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
                 onTap: () => _showAgreementDialog('隐私政策'),
               ),
               _buildDivider(),
-              _buildSettingItem(
-                icon: Icons.info_outline,
-                title: '关于我们',
-                trailing: 'v1.0.0',
-                onTap: () {},
-              ),
+              _buildSettingItem(icon: Icons.info_outline, title: '关于我们', trailing: 'v1.0.0', onTap: () {}),
             ],
           ),
         ),
@@ -324,25 +270,12 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
             Icon(icon, color: Colors.white70, size: 22),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(color: Colors.white, fontSize: 15),
-              ),
+              child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 15)),
             ),
             if (trailing != null)
-              Text(
-                trailing,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  fontSize: 14,
-                ),
-              ),
+              Text(trailing, style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14)),
             const SizedBox(width: 4),
-            Icon(
-              Icons.chevron_right,
-              color: Colors.white.withValues(alpha: 0.3),
-              size: 20,
-            ),
+            Icon(Icons.chevron_right, color: Colors.white.withValues(alpha: 0.3), size: 20),
           ],
         ),
       ),
@@ -350,12 +283,7 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
   }
 
   Widget _buildDivider() {
-    return Divider(
-      height: 1,
-      thickness: 1,
-      color: Colors.white.withValues(alpha: 0.05),
-      indent: 50,
-    );
+    return Divider(height: 1, thickness: 1, color: Colors.white.withValues(alpha: 0.05), indent: 50);
   }
 
   Widget _buildLogoutButton() {
@@ -367,9 +295,7 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
           foregroundColor: Colors.redAccent,
           side: const BorderSide(color: Colors.redAccent),
           padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -384,7 +310,7 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
   }
 
   void _showEditNicknameDialog() {
-    final controller = TextEditingController(text: '用户昵称');
+    final controller = TextEditingController(text: AuthService().currentUser?.nickName ?? '');
 
     showDialog(
       context: context,
@@ -395,6 +321,7 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
         content: TextField(
           controller: controller,
           style: const TextStyle(color: Colors.white),
+          maxLength: 20,
           decoration: InputDecoration(
             hintText: '请输入新昵称',
             hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
@@ -411,23 +338,51 @@ class _HomeProfileTabState extends State<HomeProfileTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              '取消',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
-            ),
+            child: Text('取消', style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text(
-              '保存',
-              style: TextStyle(color: StarryTheme.accentPink),
-            ),
+            onPressed: _isUpdating ? null : () => _handleSaveNickname(controller.text),
+            child: Text(_isUpdating ? '保存中...' : '保存', style: const TextStyle(color: StarryTheme.accentPink)),
           ),
         ],
       ),
     );
+  }
+
+  /// 保存昵称
+  Future<void> _handleSaveNickname(String newNickname) async {
+    if (newNickname.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('昵称不能为空')));
+      return;
+    }
+
+    if (newNickname == AuthService().currentUser?.nickName) {
+      Navigator.pop(context);
+      return;
+    }
+
+    setState(() => _isUpdating = true);
+
+    try {
+      final updatedUser = await _himxApi.updateNickname(newNickname);
+      await AuthService().updateUser(updatedUser);
+
+      if (!mounted) return;
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('昵称更新成功'), backgroundColor: Colors.green));
+
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('更新失败: $e'), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdating = false);
+      }
+    }
   }
 
   void _showAgreementDialog(String title) {
@@ -482,21 +437,14 @@ AI生成的内容仅供娱乐，不代表真实人物。'''
 
 6. 联系我们
 如有疑问，请联系 support@himx.com''',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.8),
-                fontSize: 14,
-                height: 1.6,
-              ),
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14, height: 1.6),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              '关闭',
-              style: TextStyle(color: StarryTheme.accentPink),
-            ),
+            child: const Text('关闭', style: TextStyle(color: StarryTheme.accentPink)),
           ),
         ],
       ),
@@ -510,30 +458,52 @@ AI生成的内容仅供娱乐，不代表真实人物。'''
         backgroundColor: const Color(0xFF1A1A1A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('确认退出', style: TextStyle(color: Colors.white)),
-        content: Text(
-          '确定要退出登录吗？',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
-        ),
+        content: Text('确定要退出登录吗？', style: TextStyle(color: Colors.white.withValues(alpha: 0.8))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              '取消',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
-            ),
+            child: Text('取消', style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: 执行登出逻辑
-            },
-            child: const Text(
-              '退出',
-              style: TextStyle(color: Colors.redAccent),
-            ),
+            onPressed: _isUpdating ? null : _handleLogout,
+            child: Text(_isUpdating ? '退出中...' : '退出', style: const TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
     );
+  }
+
+  /// 执行登出逻辑
+  Future<void> _handleLogout() async {
+    setState(() => _isUpdating = true);
+
+    try {
+      // 调用后端登出接口
+      await _himxApi.logout();
+    } catch (e) {
+      debugPrint('Logout API error: $e');
+      // 即使API调用失败，仍然清除本地数据并导航回登录页
+    }
+
+    try {
+      // 清除本地用户数据
+      await AuthService().clearUserData();
+
+      if (!mounted) return;
+
+      // 关闭对话框
+      Navigator.pop(context);
+
+      // 导航回登录页面
+      // 这里假设登录页是应用的根页面，使用pushReplacementNamed
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('退出失败: $e'), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdating = false);
+      }
+    }
   }
 }
